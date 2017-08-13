@@ -1,0 +1,303 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include <QMessageBox>
+#include <QMenu>
+#include <QFileDialog>
+#include <QShortcut>
+#include <QWebView>
+#include <QWebFrame>
+#include <QTextEdit>
+#include <QWebHistory>
+
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+    ui->pushButtonStop->setVisible(false);
+    setStyleSheet("QTabBar:tab{width:150px;text-align:left;} QPushButton::menu-indicator{width:0px;}");
+    ui->pushButtonBack->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft));
+    ui->pushButtonForward->setIcon(style()->standardIcon(QStyle::SP_ArrowRight));
+    ui->pushButtonStop->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
+    setWindowState(Qt::WindowMaximized);
+    connect(ui->pushButtonBack, SIGNAL(pressed()), this, SLOT(goBack()));
+    connect(ui->pushButtonForward, SIGNAL(pressed()), this, SLOT(goForward()));
+    connect(ui->pushButtonGoto, SIGNAL(pressed()), this, SLOT(gotoURL()));
+    connect(ui->lineEditURL,SIGNAL(returnPressed()),this,SLOT(gotoURL()));
+    connect(ui->pushButtonStop, SIGNAL(pressed()), this, SLOT(stop()));
+    QMenu *menu=new QMenu;
+    action_newtab=new QAction("新标签页",menu);
+    action_newtab->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_T));
+    action_open=new QAction("打开本地网页",menu);
+    action_open->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
+    action_source=new QAction("查看网页源码",menu);
+    action_source->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_U));
+    action_history=new QAction("历史记录",menu);
+    action_history->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_H));
+    action_about=new QAction("关于",menu);
+    action_about->setShortcut(QKeySequence(Qt::Key_F1));
+    menu->addAction(action_newtab);
+    menu->addAction(action_open);
+    menu->addAction(action_source);
+    menu->addAction(action_history);
+    menu->addAction(action_about);
+    ui->pushButtonMenu->setMenu(menu);
+    connect(action_newtab,SIGNAL(triggered(bool)),this,SLOT(newTab()));
+    connect(action_open,SIGNAL(triggered(bool)),this,SLOT(openFile()));
+    connect(action_source,SIGNAL(triggered(bool)),this,SLOT(viewSource()));
+    connect(action_history,SIGNAL(triggered(bool)),this,SLOT(history()));
+    connect(action_about,SIGNAL(triggered(bool)),this,SLOT(about()));
+    connect(new QShortcut(QKeySequence(Qt::Key_F5),this), SIGNAL(activated()),this, SLOT(refresh()));
+    connect(new QShortcut(QKeySequence(Qt::Key_Escape),this), SIGNAL(activated()),this, SLOT(stop()));
+    connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Left),this), SIGNAL(activated()),this, SLOT(goBack()));
+    connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Right),this), SIGNAL(activated()),this, SLOT(goForward()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Tab),this), SIGNAL(activated()),this, SLOT(switchTab()));    
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return),this), SIGNAL(activated()),this, SLOT(fillURL()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Enter),this), SIGNAL(activated()),this, SLOT(fillURL()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W),this), SIGNAL(activated()),this, SLOT(closeCurrentTab()));
+    connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
+    connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
+    newTab();
+    ui->lineEditURL->setText("http://www.baidu.com");
+    QWebSettings::setIconDatabasePath(".");
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::newTab()
+{
+    QWebView *webView = new QWebView;
+    webView->settings()->setAttribute(QWebSettings::PluginsEnabled,true);
+    webView->page()->setLinkDelegationPolicy(QWebPage::DelegateExternalLinks);
+    connect(webView, SIGNAL(linkClicked(const QUrl&)), this, SLOT(onLinkClicked(const QUrl&)));
+    connect(webView,SIGNAL(loadProgress(int)),this,SLOT(loadProgress(int)));
+    connect(webView,SIGNAL(loadStarted()),this,SLOT(loadStart()));
+    connect(webView,SIGNAL(loadFinished(bool)),this,SLOT(loadFinish(bool)));
+    connect(webView->page(),SIGNAL(downloadRequested(QNetworkRequest)), this, SLOT(downloadRequest(QNetworkRequest)));
+    connect(webView->page(),SIGNAL(linkHovered(QString,QString,QString)),this,SLOT(linkHover(QString,QString,QString)));
+    connect(webView,SIGNAL(titleChanged(QString)),this,SLOT(titleChange(QString)));
+    connect(webView,SIGNAL(iconChanged()),this,SLOT(iconChange()));
+    ui->tabWidget->addTab(webView,QIcon("icon.png"),"新标签页");
+    ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
+}
+
+void MainWindow::gotoURL()
+{
+    ui->pushButtonGoto->setVisible(false);
+    ui->pushButtonStop->setVisible(true);
+    ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
+
+}
+
+void MainWindow::stop()
+{
+    ui->pushButtonGoto->setVisible(true);
+    ui->pushButtonStop->setVisible(false);
+    ((QWebView*)(ui->tabWidget->currentWidget()))->stop();
+}
+
+void MainWindow::onLinkClicked(const QUrl &url)
+{
+    ui->lineEditURL->setText(url.toString());
+    ((QWebView*)(ui->tabWidget->currentWidget()))->load(url);
+}
+
+void MainWindow::goBack()
+{
+   ((QWebView*)(ui->tabWidget->currentWidget()))->page()->triggerAction(QWebPage::Back);
+}
+
+void MainWindow::goForward()
+{
+    ((QWebView*)(ui->tabWidget->currentWidget()))->page()->triggerAction(QWebPage::Forward);
+}
+
+void MainWindow::about()
+{
+//    QMessageBox aboutMB(QMessageBox::NoIcon, "关于", "海天鹰浏览器 1.0\n一款基于Qt5.6的多标签网页浏览器。\n作者：黄颖\nE-mail: sonichy@163.com\n主页：sonichy.96.lt");
+//    aboutMB.setIconPixmap(QPixmap(":/icon.png"));
+//    aboutMB.exec();
+    newTab();
+    ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl::fromLocalFile(QDir::currentPath()+"/about.htm"));
+}
+
+void MainWindow::loadStart()
+{
+    //ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
+}
+
+void MainWindow::loadFinish(bool b)
+{
+    if(b){
+        ui->pushButtonGoto->setVisible(true);
+        ui->pushButtonStop->setVisible(false);
+        ui->progressBar->setValue(0);
+        ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
+
+    }else{
+        //((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text() ));
+    }
+}
+
+void MainWindow::openFile()
+{
+    if(filename==""){
+        filename = QFileDialog::getOpenFileName(this, "打开网页", ".");
+    }else{
+        filename = QFileDialog::getOpenFileName(this, "打开网页", filename);
+    }
+    if(!filename.isEmpty()){
+        ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl::fromLocalFile(filename));
+        ui->lineEditURL->setText("file://"+filename);
+    }
+}
+
+// 下载：http://www.qtcentre.org/threads/41997-Qwebview-Copy-Text-And-Save-Image
+//      http://www.linuxjournal.com/magazine/using-webkit-your-desktop-application
+void MainWindow::downloadRequest(const QNetworkRequest &request)
+{
+    QString defaultFileName = QFileInfo(request.url().toString()).fileName();
+    QString fileName = QFileDialog::getSaveFileName(this, tr("保存文件"), defaultFileName);
+    if (fileName.isEmpty()) return;
+    QNetworkRequest newRequest = request;
+    newRequest.setAttribute(QNetworkRequest::User, fileName);
+    QNetworkAccessManager *networkManager = ((QWebView*)(ui->tabWidget->currentWidget()))->page()->networkAccessManager();
+    QNetworkReply *reply = networkManager->get(newRequest);
+    connect(reply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(downloadProgress(qint64, qint64)));
+    connect(reply, SIGNAL(finished()), this, SLOT(downloadFinish()));
+}
+
+void MainWindow::downloadFinish()
+{
+    QNetworkReply *reply = ((QNetworkReply*)sender());
+    QNetworkRequest request = reply->request();
+    QVariant v = request.attribute(QNetworkRequest::User);
+    QString fileName = v.toString();
+    QFile file(fileName);
+    if (file.open(QFile::ReadWrite))
+        file.write(reply->readAll());
+}
+
+QString sbytes(qint64 bytes){
+    QString unit="B";
+    double dbytes=bytes*1.0;
+    if(bytes>999999999){
+        dbytes/=(1024*1024*1024);
+        unit="GB";
+    }else{
+        if(bytes>999999){
+            dbytes/=(1024*1024);
+            unit="MB";
+        }else{
+            if(bytes>999){
+                dbytes/=1024;
+                unit="KB";
+            }
+        }
+    }
+    return QString("%1%2").arg(QString::number(dbytes,'f',2)).arg(unit);
+}
+
+void MainWindow::downloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+    statusBar()->showMessage(QString("%1/%2").arg(sbytes(bytesReceived)).arg(sbytes(bytesTotal)));
+}
+
+void MainWindow::titleChange(QString title)
+{
+    //setWindowTitle(title);
+    ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), title);
+}
+
+void MainWindow::linkHover(const QString &link, const QString &title, const QString &textContent)
+{
+    statusBar()->showMessage(link);
+}
+
+void MainWindow::closeTab(int i)
+{
+    ui->tabWidget->removeTab(i);
+    if(ui->tabWidget->count()<1)newTab();
+}
+
+void MainWindow::currentChange(int i)
+{
+    //qDebug() << i;
+    if(i!=-1)
+        ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
+}
+
+void MainWindow::iconChange()
+{
+    ui->tabWidget->setTabIcon(ui->tabWidget->currentIndex(),((QWebView*)(ui->tabWidget->currentWidget()))->icon());
+}
+
+void MainWindow::switchTab()
+{
+    int index = ui->tabWidget->currentIndex();
+    if(index == ui->tabWidget->count()-1){
+        ui->tabWidget->setCurrentIndex(0);
+        return;
+    }
+    if(index < ui->tabWidget->count()-1){
+        ui->tabWidget->setCurrentIndex(index+1);
+    }
+}
+
+void MainWindow::fillURL()
+{
+    ui->lineEditURL->setText("http://www."+ui->lineEditURL->text()+".com");
+    gotoURL();
+}
+
+void MainWindow::closeCurrentTab()
+{
+    ui->tabWidget->removeTab(ui->tabWidget->currentIndex());
+    if(ui->tabWidget->count()<1)newTab();
+}
+
+void MainWindow::viewSource()
+{
+    QString s = ((QWebView*)(ui->tabWidget->currentWidget()))->page()->currentFrame()->toHtml();
+    s=s.replace("<html>","",Qt::CaseInsensitive);
+    s=s.replace("</html>","",Qt::CaseInsensitive);
+    s="<html><pre>"+s+"</pre></html>";
+    qDebug() << s;
+    QUrl url = ((QWebView*)(ui->tabWidget->currentWidget()))->url();
+    newTab();
+    ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
+//    QTextEdit *TE = new QTextEdit;
+//    TE->setPlainText(s);
+//    ui->tabWidget->addTab(TE,QIcon("icon.png"),"新标签页");
+//    ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
+}
+
+void MainWindow::loadProgress(int i)
+{
+    ui->progressBar->setValue(i);
+    QString js="var imgs=document.getElementsByTagName('img'); for(i=0;i<imgs.length;i++){ if(imgs[i].src.indexOf('http://ads.')==0 || imgs[i].src.indexOf('http://ww2.sinaimg.cn')==0 || imgs[i].src.indexOf('http://ww3.sinaimg.cn')==0 || imgs[i].src.indexOf('http://vip.xinzheng8.pw')==0 || imgs[i].src.indexOf('http://wx3.sinaimg.cn')==0 || imgs[i].src.indexOf('http://wx4.sinaimg.cn')==0 || imgs[i].src.indexOf('http://www.pv84.com')==0) imgs[i].style.display='none';}";
+    ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->evaluateJavaScript(js);
+}
+
+void MainWindow::history()
+{
+    QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;}</style></head>";
+    QWebHistory *history = ((QWebView*)(ui->tabWidget->currentWidget()))->history();
+    for(int i=0;i<history->items().size();i++){
+        // history->itemAt(i).lastVisited().toString("yyyy-MM-dd HH:mm")
+        s += "<a href=" + history->itemAt(i).url().toString() + ">" + history->itemAt(i).title() + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + history->itemAt(i).url().toString()+"</a><br>";
+    }
+    s+="</html>";
+    newTab();
+    QUrl url("webkit://history");
+    ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
+    ui->tabWidget->setTabIcon(ui->tabWidget->currentIndex(),QIcon("history.ico"));
+}
+
+void MainWindow::refresh()
+{
+    ((QWebView*)(ui->tabWidget->currentWidget()))->load(((QWebView*)(ui->tabWidget->currentWidget()))->url());
+}
