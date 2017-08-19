@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QNetworkReply>
+#include <QPushButton>
+#include <QLineEdit>
 
 namespace Ui {
 class MainWindow;
@@ -18,8 +20,11 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QAction *action_newtab,*action_open,*action_source,*action_history,*action_about;
+    QAction *action_newtab,*action_open,*action_bookmark,*action_source,*action_history,*action_about,*action_find;
     QString filename;
+    QDialog *find_dialog;
+    QLineEdit *lineEdit_find;
+    QPushButton *pushButton_findlast,*pushButton_findnext,*pushButton_findclose;
 
 private slots:
     void gotoURL();
@@ -47,6 +52,11 @@ private slots:
     void loadProgress(int i);
     void history();
     void refresh();
+    void bookmark();
+    void find();
+    void hidefind();
+    void findlast();
+    void findnext();
 };
 
 #endif // MAINWINDOW_H

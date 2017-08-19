@@ -29,7 +29,11 @@ MainWindow::MainWindow(QWidget *parent) :
     action_newtab=new QAction("新标签页",menu);
     action_newtab->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_T));
     action_open=new QAction("打开本地网页",menu);
-    action_open->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
+    action_open->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));    
+    action_bookmark=new QAction("书签",menu);
+    action_bookmark->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_B));
+    action_find=new QAction("查找",menu);
+    action_find->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_F));
     action_source=new QAction("查看网页源码",menu);
     action_source->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_U));
     action_history=new QAction("历史记录",menu);
@@ -38,12 +42,16 @@ MainWindow::MainWindow(QWidget *parent) :
     action_about->setShortcut(QKeySequence(Qt::Key_F1));
     menu->addAction(action_newtab);
     menu->addAction(action_open);
+    menu->addAction(action_bookmark);
+    menu->addAction(action_find);
     menu->addAction(action_source);
     menu->addAction(action_history);
     menu->addAction(action_about);
     ui->pushButtonMenu->setMenu(menu);
     connect(action_newtab,SIGNAL(triggered(bool)),this,SLOT(newTab()));
     connect(action_open,SIGNAL(triggered(bool)),this,SLOT(openFile()));
+    connect(action_bookmark,SIGNAL(triggered(bool)),this,SLOT(bookmark()));
+    connect(action_find,SIGNAL(triggered(bool)),this,SLOT(find()));
     connect(action_source,SIGNAL(triggered(bool)),this,SLOT(viewSource()));
     connect(action_history,SIGNAL(triggered(bool)),this,SLOT(history()));
     connect(action_about,SIGNAL(triggered(bool)),this,SLOT(about()));
@@ -60,6 +68,33 @@ MainWindow::MainWindow(QWidget *parent) :
     newTab();
     ui->lineEditURL->setText("http://www.baidu.com");
     QWebSettings::setIconDatabasePath(".");
+
+    find_dialog = new QDialog;
+    find_dialog->setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    QHBoxLayout *hbox = new QHBoxLayout;
+    lineEdit_find = new QLineEdit;
+    hbox->addWidget(lineEdit_find);
+    pushButton_findlast = new QPushButton;
+    pushButton_findlast->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft));
+    pushButton_findlast->setFlat(true);
+    pushButton_findlast->setFocusPolicy(Qt::NoFocus);
+    hbox->addWidget(pushButton_findlast);
+    pushButton_findnext = new QPushButton;
+    pushButton_findnext->setIcon(style()->standardIcon(QStyle::SP_ArrowRight));
+    pushButton_findnext->setFlat(true);
+    pushButton_findnext->setFocusPolicy(Qt::NoFocus);
+    hbox->addWidget(pushButton_findnext);
+    pushButton_findclose = new QPushButton;
+    pushButton_findclose->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
+    pushButton_findclose->setFlat(true);
+    pushButton_findclose->setFocusPolicy(Qt::NoFocus);
+    hbox->addWidget(pushButton_findclose);
+    find_dialog->setLayout(hbox);
+    find_dialog->resize(250,20);
+    connect(lineEdit_find,SIGNAL(returnPressed()),this,SLOT(findnext()));
+    connect(pushButton_findlast,SIGNAL(pressed()),this,SLOT(findlast()));
+    connect(pushButton_findnext,SIGNAL(pressed()),this,SLOT(findnext()));
+    connect(pushButton_findclose,SIGNAL(pressed()),this,SLOT(hidefind()));
 }
 
 MainWindow::~MainWindow()
@@ -86,16 +121,13 @@ void MainWindow::newTab()
 
 void MainWindow::gotoURL()
 {
-    ui->pushButtonGoto->setVisible(false);
-    ui->pushButtonStop->setVisible(true);
+
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
 
 }
 
 void MainWindow::stop()
 {
-    ui->pushButtonGoto->setVisible(true);
-    ui->pushButtonStop->setVisible(false);
     ((QWebView*)(ui->tabWidget->currentWidget()))->stop();
 }
 
@@ -126,17 +158,18 @@ void MainWindow::about()
 
 void MainWindow::loadStart()
 {
+    ui->pushButtonGoto->setVisible(false);
+    ui->pushButtonStop->setVisible(true);
     //ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
 }
 
 void MainWindow::loadFinish(bool b)
 {
+    ui->pushButtonGoto->setVisible(true);
+    ui->pushButtonStop->setVisible(false);
     if(b){
-        ui->pushButtonGoto->setVisible(true);
-        ui->pushButtonStop->setVisible(false);
         ui->progressBar->setValue(0);
         ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
-
     }else{
         //((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text() ));
     }
@@ -208,8 +241,8 @@ void MainWindow::downloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 
 void MainWindow::titleChange(QString title)
 {
-    //setWindowTitle(title);
     ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), title);
+    ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(),title);
 }
 
 void MainWindow::linkHover(const QString &link, const QString &title, const QString &textContent)
@@ -262,17 +295,13 @@ void MainWindow::closeCurrentTab()
 void MainWindow::viewSource()
 {
     QString s = ((QWebView*)(ui->tabWidget->currentWidget()))->page()->currentFrame()->toHtml();
-    s=s.replace("<html>","",Qt::CaseInsensitive);
-    s=s.replace("</html>","",Qt::CaseInsensitive);
-    s="<html><pre>"+s+"</pre></html>";
-    qDebug() << s;
+    s=s.replace("<","&lt;");
+    s=s.replace(">","&gt;");
+    s="<title>源码</title><pre>"+s+"</pre>";
+    //qDebug() << s;
     QUrl url = ((QWebView*)(ui->tabWidget->currentWidget()))->url();
     newTab();
     ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
-//    QTextEdit *TE = new QTextEdit;
-//    TE->setPlainText(s);
-//    ui->tabWidget->addTab(TE,QIcon("icon.png"),"新标签页");
-//    ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
 }
 
 void MainWindow::loadProgress(int i)
@@ -294,10 +323,41 @@ void MainWindow::history()
     newTab();
     QUrl url("webkit://history");
     ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
-    ui->tabWidget->setTabIcon(ui->tabWidget->currentIndex(),QIcon("history.ico"));
+    ui->tabWidget->setTabIcon(ui->tabWidget->currentIndex(),QIcon(":/history.ico"));
 }
 
 void MainWindow::refresh()
 {
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(((QWebView*)(ui->tabWidget->currentWidget()))->url());
+}
+
+void MainWindow::bookmark()
+{
+
+}
+
+void MainWindow::find()
+{
+    qDebug() << lineEdit_find->height();
+    lineEdit_find->setText(((QWebView*)(ui->tabWidget->currentWidget()))->selectedText());
+    find_dialog->move(x() + width() - find_dialog->width(), y()+90);
+    find_dialog->show();
+    find_dialog->raise();
+}
+
+void MainWindow::hidefind()
+{
+    ((QWebView*)(ui->tabWidget->currentWidget()))->findText("");
+    find_dialog->hide();
+}
+
+void MainWindow::findlast()
+{
+    ((QWebView*)(ui->tabWidget->currentWidget()))->findText(lineEdit_find->text(),QWebPage::FindBackward);
+}
+
+void MainWindow::findnext()
+{
+    //((QWebView*)(ui->tabWidget->currentWidget()))->findText(lineEdit_find->text(),QWebPage::HighlightAllOccurrences);
+    ((QWebView*)(ui->tabWidget->currentWidget()))->findText(lineEdit_find->text());
 }
