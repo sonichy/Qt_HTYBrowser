@@ -25,6 +25,11 @@ private:
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
     QPushButton *pushButton_findlast,*pushButton_findnext,*pushButton_findclose;
+    QStringList SL_bookmark_title;
+    QStringList SL_bookmark_url;
+    void saveBookmarks();
+    void fillBookmarkMenu();
+    bool bookmarked;
 
 private slots:
     void gotoURL();
@@ -52,11 +57,13 @@ private slots:
     void loadProgress(int i);
     void history();
     void refresh();
-    void bookmark();
+    void loadBookmarks();
+    void gotoBookmarkURL(bool);
     void find();
     void hidefind();
     void findlast();
     void findnext();
+    void on_pushButton_addBookmark_clicked();
 };
 
 #endif // MAINWINDOW_H

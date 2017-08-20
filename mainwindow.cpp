@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
     action_open=new QAction("打开本地网页",menu);
     action_open->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));    
     action_bookmark=new QAction("书签",menu);
-    action_bookmark->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_B));
+    //action_bookmark->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_B));
     action_find=new QAction("查找",menu);
     action_find->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_F));
     action_source=new QAction("查看网页源码",menu);
@@ -49,8 +49,7 @@ MainWindow::MainWindow(QWidget *parent) :
     menu->addAction(action_about);
     ui->pushButtonMenu->setMenu(menu);
     connect(action_newtab,SIGNAL(triggered(bool)),this,SLOT(newTab()));
-    connect(action_open,SIGNAL(triggered(bool)),this,SLOT(openFile()));
-    connect(action_bookmark,SIGNAL(triggered(bool)),this,SLOT(bookmark()));
+    connect(action_open,SIGNAL(triggered(bool)),this,SLOT(openFile()));    
     connect(action_find,SIGNAL(triggered(bool)),this,SLOT(find()));
     connect(action_source,SIGNAL(triggered(bool)),this,SLOT(viewSource()));
     connect(action_history,SIGNAL(triggered(bool)),this,SLOT(history()));
@@ -63,11 +62,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return),this), SIGNAL(activated()),this, SLOT(fillURL()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Enter),this), SIGNAL(activated()),this, SLOT(fillURL()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W),this), SIGNAL(activated()),this, SLOT(closeCurrentTab()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_D),this), SIGNAL(activated()),this, SLOT(on_pushButton_addBookmark_clicked()));
     connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
     newTab();
-    ui->lineEditURL->setText("http://www.baidu.com");
+    ui->lineEditURL->setText("http://www.baidu.com/");
     QWebSettings::setIconDatabasePath(".");
+    loadBookmarks();
 
     find_dialog = new QDialog;
     find_dialog->setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
@@ -95,6 +96,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(pushButton_findlast,SIGNAL(pressed()),this,SLOT(findlast()));
     connect(pushButton_findnext,SIGNAL(pressed()),this,SLOT(findnext()));
     connect(pushButton_findclose,SIGNAL(pressed()),this,SLOT(hidefind()));
+
 }
 
 MainWindow::~MainWindow()
@@ -121,9 +123,7 @@ void MainWindow::newTab()
 
 void MainWindow::gotoURL()
 {
-
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
-
 }
 
 void MainWindow::stop()
@@ -160,7 +160,18 @@ void MainWindow::loadStart()
 {
     ui->pushButtonGoto->setVisible(false);
     ui->pushButtonStop->setVisible(true);
-    //ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
+    QString title = ((QWebView*)(ui->tabWidget->currentWidget()))->title();
+    QString surl = ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString();
+    for(int i=0;i<SL_bookmark_title.size();i++){
+        if(SL_bookmark_title.at(i)==title && SL_bookmark_url.at(i)==surl){
+            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_on.png"));
+            bookmarked = true;
+            break;
+        }else{
+            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_off.png"));
+            bookmarked = false;
+        }
+    }
 }
 
 void MainWindow::loadFinish(bool b)
@@ -331,11 +342,6 @@ void MainWindow::refresh()
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(((QWebView*)(ui->tabWidget->currentWidget()))->url());
 }
 
-void MainWindow::bookmark()
-{
-
-}
-
 void MainWindow::find()
 {
     qDebug() << lineEdit_find->height();
@@ -360,4 +366,89 @@ void MainWindow::findnext()
 {
     //((QWebView*)(ui->tabWidget->currentWidget()))->findText(lineEdit_find->text(),QWebPage::HighlightAllOccurrences);
     ((QWebView*)(ui->tabWidget->currentWidget()))->findText(lineEdit_find->text());
+}
+
+void MainWindow::loadBookmarks()
+{
+    QString FileNameBookmark = QDir::currentPath() + "/bookmark";
+    QFile *file=new QFile(FileNameBookmark);
+    if(!QFileInfo(FileNameBookmark).isFile()){
+        file->open(QIODevice::WriteOnly);
+        file->close();
+    }
+    //SL_bookmark_title.clear();
+    //SL_bookmark_url.clear();
+    if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
+        QTextStream ts(file);
+        QString s=ts.readAll();
+        file->close();
+        QStringList line=s.split("\n");
+        for(int i=0;i<line.size();i++){
+            if(line.at(i).contains("#")){
+                QStringList strlist=line.at(i).split("#");
+                SL_bookmark_title.append(strlist.at(0));
+                SL_bookmark_url.append(strlist.at(1));
+            }
+        }
+    }
+    fillBookmarkMenu();
+}
+
+void MainWindow::fillBookmarkMenu()
+{
+    QMenu *submenu = new QMenu;
+    for(int i=0;i<SL_bookmark_title.size();i++){
+        QAction *action_bookmark_title = new QAction(submenu);
+        action_bookmark_title->setText(SL_bookmark_title.at(i));
+        action_bookmark_title->setToolTip(SL_bookmark_url.at(i));
+        submenu->addAction(action_bookmark_title);
+        connect(action_bookmark_title,SIGNAL(triggered(bool)),this,SLOT(gotoBookmarkURL(bool)));
+    }
+    action_bookmark->setMenu(submenu);
+}
+
+void MainWindow::on_pushButton_addBookmark_clicked()
+{
+    QString title = ((QWebView*)(ui->tabWidget->currentWidget()))->title();
+    QString surl = ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString();
+    if(title!="" && surl!=""){
+        if(bookmarked){
+            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_off.png"));
+            SL_bookmark_title.removeOne(title);
+            SL_bookmark_url.removeOne(surl);
+        }else{
+            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_on.png"));
+            SL_bookmark_title.append(title);
+            SL_bookmark_url.append(surl);
+        }
+        bookmarked = !bookmarked;
+        fillBookmarkMenu();
+        saveBookmarks();
+    }
+}
+
+void MainWindow::saveBookmarks()
+{
+    QString FileNameBookmark = QDir::currentPath() + "/bookmark";
+    QFile file(FileNameBookmark);
+    if(file.open(QFile::WriteOnly))
+    {
+        QTextStream ts(&file);
+        QString s;
+        for(int i=0;i<SL_bookmark_title.size();i++){
+            s = s+ SL_bookmark_title.at(i) + "#" + SL_bookmark_url.at(i);
+            if(i < SL_bookmark_title.size()-1)
+                s = s + "\n";
+        }
+        ts << s;
+        file.close();
+    }
+}
+
+void MainWindow::gotoBookmarkURL(bool)
+{
+    QAction *action = qobject_cast<QAction*>(sender()); // 获取发出信号的对象
+    qDebug() << action->toolTip();
+    ui->lineEditURL->setText(action->toolTip());
+    ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
 }
