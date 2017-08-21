@@ -25,11 +25,17 @@ private:
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
     QPushButton *pushButton_findlast,*pushButton_findnext,*pushButton_findclose;
-    QStringList SL_bookmark_title;
-    QStringList SL_bookmark_url;
+    QStringList SL_bookmark_title,SL_bookmark_url;
     void saveBookmarks();
     void fillBookmarkMenu();
     bool bookmarked;
+    struct History {
+        QString stime;
+        QString title;
+        QString surl;
+    };
+    void appendHistory(QString stime, QString title, QString url);
+
 
 private slots:
     void gotoURL();
@@ -42,7 +48,7 @@ private slots:
     void openFile();
     void downloadRequest(const QNetworkRequest &request);
     void downloadFinish();
-    void downloadProgress(qint64, qint64);    
+    void downloadProgress(qint64, qint64);
     void linkHover(const QString&, const QString&, const QString&);
     void newTab();
     void closeTab(int);

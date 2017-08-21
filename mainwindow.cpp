@@ -67,8 +67,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
     newTab();
     ui->lineEditURL->setText("http://www.baidu.com/");
-    QWebSettings::setIconDatabasePath(".");
-    loadBookmarks();
+    QWebSettings::setIconDatabasePath(".");    
 
     find_dialog = new QDialog;
     find_dialog->setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
@@ -96,6 +95,15 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(pushButton_findlast,SIGNAL(pressed()),this,SLOT(findlast()));
     connect(pushButton_findnext,SIGNAL(pressed()),this,SLOT(findnext()));
     connect(pushButton_findclose,SIGNAL(pressed()),this,SLOT(hidefind()));
+
+    loadBookmarks();
+
+    QString FileNameBookmark = QDir::currentPath() + "/history";
+    QFile *file=new QFile(FileNameBookmark);
+    if(!QFileInfo(FileNameBookmark).isFile()){
+        file->open(QIODevice::WriteOnly);
+        file->close();
+    }
 
 }
 
@@ -172,6 +180,8 @@ void MainWindow::loadStart()
             bookmarked = false;
         }
     }
+    if(title!="" && surl!="" && surl!="htybrowser://history")
+        appendHistory(QDateTime::currentDateTime().toString("MM-dd hh:mm"),title,surl);
 }
 
 void MainWindow::loadFinish(bool b)
@@ -322,21 +332,6 @@ void MainWindow::loadProgress(int i)
     ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->evaluateJavaScript(js);
 }
 
-void MainWindow::history()
-{
-    QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;}</style></head>";
-    QWebHistory *history = ((QWebView*)(ui->tabWidget->currentWidget()))->history();
-    for(int i=0;i<history->items().size();i++){
-        // history->itemAt(i).lastVisited().toString("yyyy-MM-dd HH:mm")
-        s += "<a href=" + history->itemAt(i).url().toString() + ">" + history->itemAt(i).title() + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + history->itemAt(i).url().toString()+"</a><br>";
-    }
-    s+="</html>";
-    newTab();
-    QUrl url("webkit://history");
-    ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
-    ui->tabWidget->setTabIcon(ui->tabWidget->currentIndex(),QIcon(":/history.ico"));
-}
-
 void MainWindow::refresh()
 {
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(((QWebView*)(ui->tabWidget->currentWidget()))->url());
@@ -376,8 +371,6 @@ void MainWindow::loadBookmarks()
         file->open(QIODevice::WriteOnly);
         file->close();
     }
-    //SL_bookmark_title.clear();
-    //SL_bookmark_url.clear();
     if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
         QTextStream ts(file);
         QString s=ts.readAll();
@@ -451,4 +444,49 @@ void MainWindow::gotoBookmarkURL(bool)
     qDebug() << action->toolTip();
     ui->lineEditURL->setText(action->toolTip());
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
+}
+
+void MainWindow::history()
+{
+    QList<History> historys;
+    QString FileNameHistory = QDir::currentPath() + "/history";
+    QFile *file=new QFile(FileNameHistory);
+    if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
+        QTextStream ts(file);
+        QString s=ts.readAll();
+        file->close();
+        QStringList line=s.split("\n");
+        for(int i=0;i<line.size();i++){
+            if(line.at(i).contains("#")){
+                QStringList strlist=line.at(i).split("#");
+                History history;
+                history.stime = strlist.at(0);
+                history.title = strlist.at(1);
+                history.surl = strlist.at(2);
+                historys.append(history);
+            }
+        }
+    }
+    QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;}td{padding:5px;}</style></head><body><table>";
+    for(int i=historys.size()-1; i>=0; i--){
+        s += "<tr><td>" + historys.at(i).stime + "</td><td><a href=" + historys.at(i).surl + ">" + historys.at(i).title + "</td><td>" + historys.at(i).surl + "</td></tr>";
+    }
+    s+="</table></body></html>";
+    newTab();
+    QUrl url("HTYBrowser://history");
+    ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
+    ui->tabWidget->setTabIcon(ui->tabWidget->currentIndex(),QIcon(":/history.ico"));
+}
+
+void MainWindow::appendHistory(QString stime, QString title, QString surl)
+{
+    QString FileNameHistory = QDir::currentPath() + "/history";
+    QFile file(FileNameHistory);
+    if(file.open(QFile::WriteOnly | QIODevice::Append)){
+        QTextStream ts(&file);
+        QString s = stime + "#" + title + "#" + surl + "\n";
+        //s = s + s0;
+        ts << s;
+        file.close();
+    }
 }
