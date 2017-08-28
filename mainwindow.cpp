@@ -97,9 +97,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     loadBookmarks();
 
-    QString FileNameBookmark = QDir::currentPath() + "/history";
-    QFile *file=new QFile(FileNameBookmark);
-    if(!QFileInfo(FileNameBookmark).isFile()){
+    QString FileNameHistory = QDir::currentPath() + "/history";
+    QFile *file=new QFile(FileNameHistory);
+    if(!QFileInfo(FileNameHistory).isFile()){
         file->open(QIODevice::WriteOnly);
         file->close();
     }
