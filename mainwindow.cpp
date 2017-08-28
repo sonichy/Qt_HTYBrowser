@@ -468,7 +468,7 @@ void MainWindow::history()
             }
         }
     }
-    QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;}td{padding:5px;white-space:nowrap;}</style></head><body><table>";
+    QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;}td{padding:5px;white-space:nowrap;}td:first-child,td:nth-child(3){color:gray;}</style></head><body><table>";
     for(int i=historys.size()-1; i>=0; i--){
         s += "<tr><td>" + historys.at(i).stime + "</td><td><a href=" + historys.at(i).surl + ">" + historys.at(i).title + "</td><td>" + historys.at(i).surl + "</td></tr>";
     }
