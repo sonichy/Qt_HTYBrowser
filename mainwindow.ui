@@ -141,7 +141,17 @@
            <enum>Qt::NoFocus</enum>
           </property>
           <property name="text">
-           <string>→</string>
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="res.qrc">
+            <normaloff>:/refresh.png</normaloff>:/refresh.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
           </property>
           <property name="flat">
            <bool>true</bool>

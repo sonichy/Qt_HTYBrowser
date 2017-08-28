@@ -7,7 +7,6 @@
 #include <QWebView>
 #include <QWebFrame>
 #include <QTextEdit>
-#include <QWebHistory>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -179,9 +178,7 @@ void MainWindow::loadStart()
             ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_off.png"));
             bookmarked = false;
         }
-    }
-    if(title!="" && surl!="" && surl!="htybrowser://history")
-        appendHistory(QDateTime::currentDateTime().toString("MM-dd hh:mm"),title,surl);
+    }    
 }
 
 void MainWindow::loadFinish(bool b)
@@ -192,8 +189,8 @@ void MainWindow::loadFinish(bool b)
         ui->progressBar->setValue(0);
         ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
     }else{
-        //((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text() ));
-    }
+        //((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text()));
+    }    
 }
 
 void MainWindow::openFile()
@@ -264,6 +261,10 @@ void MainWindow::titleChange(QString title)
 {
     ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), title);
     ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(),title);
+    //QString title = ((QWebView*)(ui->tabWidget->currentWidget()))->title();
+    QString surl = ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString();
+    if(title!="" && surl!="" && surl!="htybrowser://history")
+        appendHistory(QDateTime::currentDateTime().toString("MM-dd hh:mm"),title,surl);
 }
 
 void MainWindow::linkHover(const QString &link, const QString &title, const QString &textContent)
@@ -328,7 +329,7 @@ void MainWindow::viewSource()
 void MainWindow::loadProgress(int i)
 {
     ui->progressBar->setValue(i);
-    QString js="var imgs=document.getElementsByTagName('img'); for(i=0;i<imgs.length;i++){ if(imgs[i].src.indexOf('http://ads.')==0 || imgs[i].src.indexOf('http://ww2.sinaimg.cn')==0 || imgs[i].src.indexOf('http://ww3.sinaimg.cn')==0 || imgs[i].src.indexOf('http://vip.xinzheng8.pw')==0 || imgs[i].src.indexOf('http://wx3.sinaimg.cn')==0 || imgs[i].src.indexOf('http://wx4.sinaimg.cn')==0 || imgs[i].src.indexOf('http://www.pv84.com')==0) imgs[i].style.display='none';}";
+    QString js="var imgs=document.getElementsByTagName('img'); for(i=0;i<imgs.length;i++){ if(imgs[i].src.indexOf('http://ads.')!=-1 || imgs[i].src.indexOf('://ww2.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://ww3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://vip.xinzheng8.pw')!=-1 || imgs[i].src.indexOf('://wx3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://wx4.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://www.pv84.com')!=-1 || imgs[i].src.indexOf('://img.9118ads.com')!=-1 || imgs[i].src.indexOf('://wwwcdn.4006578517.com')!=-1 ) imgs[i].style.display='none';}";
     ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->evaluateJavaScript(js);
 }
 
@@ -467,7 +468,7 @@ void MainWindow::history()
             }
         }
     }
-    QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;}td{padding:5px;}</style></head><body><table>";
+    QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;}td{padding:5px;white-space:nowrap;}</style></head><body><table>";
     for(int i=historys.size()-1; i>=0; i--){
         s += "<tr><td>" + historys.at(i).stime + "</td><td><a href=" + historys.at(i).surl + ">" + historys.at(i).title + "</td><td>" + historys.at(i).surl + "</td></tr>";
     }
