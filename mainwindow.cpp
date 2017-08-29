@@ -25,19 +25,20 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->lineEditURL,SIGNAL(returnPressed()),this,SLOT(gotoURL()));
     connect(ui->pushButtonStop, SIGNAL(pressed()), this, SLOT(stop()));
     QMenu *menu=new QMenu;
-    action_newtab=new QAction("新标签页",menu);
+    action_newtab = new QAction("新标签页",menu);
     action_newtab->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_T));
-    action_open=new QAction("打开本地网页",menu);
+    action_open = new QAction("打开本地网页",menu);
     action_open->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));    
-    action_bookmark=new QAction("书签",menu);
+    action_bookmark = new QAction("书签",menu);
     //action_bookmark->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_B));
-    action_find=new QAction("查找",menu);
+    action_find = new QAction("查找",menu);
     action_find->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_F));
-    action_source=new QAction("查看网页源码",menu);
+    action_source = new QAction("查看网页源码",menu);
     action_source->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_U));
-    action_history=new QAction("历史记录",menu);
+    action_history = new QAction("历史记录",menu);
     action_history->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_H));
-    action_about=new QAction("关于",menu);
+    action_loadJS = new QAction("重载JS",menu);
+    action_about = new QAction("关于",menu);
     action_about->setShortcut(QKeySequence(Qt::Key_F1));
     menu->addAction(action_newtab);
     menu->addAction(action_open);
@@ -45,6 +46,7 @@ MainWindow::MainWindow(QWidget *parent) :
     menu->addAction(action_find);
     menu->addAction(action_source);
     menu->addAction(action_history);
+    menu->addAction(action_loadJS);
     menu->addAction(action_about);
     ui->pushButtonMenu->setMenu(menu);
     connect(action_newtab,SIGNAL(triggered(bool)),this,SLOT(newTab()));
@@ -52,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(action_find,SIGNAL(triggered(bool)),this,SLOT(find()));
     connect(action_source,SIGNAL(triggered(bool)),this,SLOT(viewSource()));
     connect(action_history,SIGNAL(triggered(bool)),this,SLOT(history()));
+    connect(action_loadJS,SIGNAL(triggered(bool)),this,SLOT(loadJS()));
     connect(action_about,SIGNAL(triggered(bool)),this,SLOT(about()));
     connect(new QShortcut(QKeySequence(Qt::Key_F5),this), SIGNAL(activated()),this, SLOT(refresh()));
     connect(new QShortcut(QKeySequence(Qt::Key_Escape),this), SIGNAL(activated()),this, SLOT(stop()));
@@ -96,6 +99,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(pushButton_findclose,SIGNAL(pressed()),this,SLOT(hidefind()));
 
     loadBookmarks();
+    loadJS();
 
     QString FileNameHistory = QDir::currentPath() + "/history";
     QFile *file=new QFile(FileNameHistory);
@@ -156,9 +160,6 @@ void MainWindow::goForward()
 
 void MainWindow::about()
 {
-//    QMessageBox aboutMB(QMessageBox::NoIcon, "关于", "海天鹰浏览器 1.0\n一款基于Qt5.6的多标签网页浏览器。\n作者：黄颖\nE-mail: sonichy@163.com\n主页：sonichy.96.lt");
-//    aboutMB.setIconPixmap(QPixmap(":/icon.png"));
-//    aboutMB.exec();
     newTab();
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl::fromLocalFile(QDir::currentPath()+"/about.htm"));
 }
@@ -329,7 +330,7 @@ void MainWindow::viewSource()
 void MainWindow::loadProgress(int i)
 {
     ui->progressBar->setValue(i);
-    QString js="var imgs=document.getElementsByTagName('img'); for(i=0;i<imgs.length;i++){ if(imgs[i].src.indexOf('http://ads.')!=-1 || imgs[i].src.indexOf('://ww2.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://ww3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://vip.xinzheng8.pw')!=-1 || imgs[i].src.indexOf('://wx3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://wx4.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://www.pv84.com')!=-1 || imgs[i].src.indexOf('://img.9118ads.com')!=-1 || imgs[i].src.indexOf('://wwwcdn.4006578517.com')!=-1 ) imgs[i].style.display='none';}";
+    //QString js="var imgs=document.getElementsByTagName('img'); for(i=0;i<imgs.length;i++){ if(imgs[i].src.indexOf('http://ads.')!=-1 || imgs[i].src.indexOf('://ww2.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://ww3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://vip.xinzheng8.pw')!=-1 || imgs[i].src.indexOf('://wx3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://wx4.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://www.pv84.com')!=-1 || imgs[i].src.indexOf('://img.9118ads.com')!=-1 || imgs[i].src.indexOf('://wwwcdn.4006578517.com')!=-1 ) imgs[i].style.display='none';}";
     ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->evaluateJavaScript(js);
 }
 
@@ -489,5 +490,21 @@ void MainWindow::appendHistory(QString stime, QString title, QString surl)
         //s = s + s0;
         ts << s;
         file.close();
+    }
+}
+
+void MainWindow::loadJS()
+{
+    QString FileNameJS = QDir::currentPath() + "/js.js";
+    QFile *file=new QFile(FileNameJS);
+    if(!QFileInfo(FileNameJS).isFile()){
+        file->open(QIODevice::WriteOnly);
+        file->close();
+    }else{
+        if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
+            QTextStream ts(file);
+            js=ts.readAll();
+            file->close();
+        }
     }
 }

@@ -20,8 +20,8 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QAction *action_newtab,*action_open,*action_bookmark,*action_source,*action_history,*action_about,*action_find;
-    QString filename;
+    QAction *action_newtab,*action_open,*action_bookmark,*action_source,*action_history,*action_about,*action_find,*action_loadJS;
+    QString filename,js;
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
     QPushButton *pushButton_findlast,*pushButton_findnext,*pushButton_findclose;
@@ -70,6 +70,7 @@ private slots:
     void findlast();
     void findnext();
     void on_pushButton_addBookmark_clicked();
+    void loadJS();
 };
 
 #endif // MAINWINDOW_H
