@@ -514,13 +514,11 @@ void MainWindow::loadJS()
 
 void MainWindow::zoomin()
 {
-    qDebug() << ((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor();
     ((QWebView*)(ui->tabWidget->currentWidget()))->setZoomFactor(((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor() + 0.1);
 }
 
 void MainWindow::zoomout()
 {
-    qDebug() << ((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor();
     ((QWebView*)(ui->tabWidget->currentWidget()))->setZoomFactor(((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor() - 0.1);
 }
 
