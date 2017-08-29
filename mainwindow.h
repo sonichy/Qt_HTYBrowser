@@ -71,6 +71,9 @@ private slots:
     void findnext();
     void on_pushButton_addBookmark_clicked();
     void loadJS();
+    void zoomin();
+    void zoomout();
+    void zoom1();
 };
 
 #endif // MAINWINDOW_H

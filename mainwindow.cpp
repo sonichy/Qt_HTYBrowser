@@ -65,6 +65,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Enter),this), SIGNAL(activated()),this, SLOT(fillURL()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W),this), SIGNAL(activated()),this, SLOT(closeCurrentTab()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_D),this), SIGNAL(activated()),this, SLOT(on_pushButton_addBookmark_clicked()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Plus),this), SIGNAL(activated()),this, SLOT(zoomin()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Minus),this), SIGNAL(activated()),this, SLOT(zoomout()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));
     connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
     newTab();
@@ -507,4 +510,21 @@ void MainWindow::loadJS()
             file->close();
         }
     }
+}
+
+void MainWindow::zoomin()
+{
+    qDebug() << ((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor();
+    ((QWebView*)(ui->tabWidget->currentWidget()))->setZoomFactor(((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor() + 0.1);
+}
+
+void MainWindow::zoomout()
+{
+    qDebug() << ((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor();
+    ((QWebView*)(ui->tabWidget->currentWidget()))->setZoomFactor(((QWebView*)(ui->tabWidget->currentWidget()))->zoomFactor() - 0.1);
+}
+
+void MainWindow::zoom1()
+{
+    ((QWebView*)(ui->tabWidget->currentWidget()))->setZoomFactor(1);
 }
