@@ -193,7 +193,7 @@ void MainWindow::loadFinish(bool b)
         ui->progressBar->setValue(0);
         ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
     }else{
-        //((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text()));
+        ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text()));
     }    
 }
 
