@@ -13,6 +13,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    WI = new QWebInspector(this);
+    ui->verticalLayout->addWidget(WI);
     ui->pushButtonStop->setVisible(false);
     setStyleSheet("QTabBar:tab{width:150px;text-align:left;} QPushButton::menu-indicator{width:0px;}");
     ui->pushButtonBack->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft));
@@ -68,11 +70,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Plus),this), SIGNAL(activated()),this, SLOT(zoomin()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Minus),this), SIGNAL(activated()),this, SLOT(zoomout()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));
+    connect(new QShortcut(QKeySequence(Qt::Key_F12),this), SIGNAL(activated()),this, SLOT(inspector()));
     connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
     newTab();
     ui->lineEditURL->setText("http://www.baidu.com/");
-    QWebSettings::setIconDatabasePath(".");    
+    QWebSettings::setIconDatabasePath(".");
 
     find_dialog = new QDialog;
     find_dialog->setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
@@ -122,13 +125,15 @@ void MainWindow::newTab()
 {
     QWebView *webView = new QWebView;
     webView->settings()->setAttribute(QWebSettings::PluginsEnabled,true);
+    webView->settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows,true);
+    webView->settings()->setAttribute(QWebSettings::DeveloperExtrasEnabled,true);
     webView->page()->setLinkDelegationPolicy(QWebPage::DelegateExternalLinks);
     connect(webView, SIGNAL(linkClicked(const QUrl&)), this, SLOT(onLinkClicked(const QUrl&)));
+    connect(webView->page(),SIGNAL(linkHovered(QString,QString,QString)),this,SLOT(linkHover(QString,QString,QString)));
     connect(webView,SIGNAL(loadProgress(int)),this,SLOT(loadProgress(int)));
     connect(webView,SIGNAL(loadStarted()),this,SLOT(loadStart()));
     connect(webView,SIGNAL(loadFinished(bool)),this,SLOT(loadFinish(bool)));
-    connect(webView->page(),SIGNAL(downloadRequested(QNetworkRequest)), this, SLOT(downloadRequest(QNetworkRequest)));
-    connect(webView->page(),SIGNAL(linkHovered(QString,QString,QString)),this,SLOT(linkHover(QString,QString,QString)));
+    connect(webView->page(),SIGNAL(downloadRequested(QNetworkRequest)), this, SLOT(downloadRequest(QNetworkRequest)));    
     connect(webView,SIGNAL(titleChanged(QString)),this,SLOT(titleChange(QString)));
     connect(webView,SIGNAL(iconChanged()),this,SLOT(iconChange()));
     ui->tabWidget->addTab(webView,QIcon("icon.png"),"新标签页");
@@ -525,4 +530,14 @@ void MainWindow::zoomout()
 void MainWindow::zoom1()
 {
     ((QWebView*)(ui->tabWidget->currentWidget()))->setZoomFactor(1);
+}
+
+void MainWindow::inspector()
+{
+    if(WI->isVisible()){
+        WI->setVisible(false);
+    }else{
+        WI->setVisible(true);
+        WI->setPage(((QWebView*)(ui->tabWidget->currentWidget()))->page());
+    }
 }

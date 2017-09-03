@@ -5,6 +5,7 @@
 #include <QNetworkReply>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QWebInspector>
 
 namespace Ui {
 class MainWindow;
@@ -35,7 +36,7 @@ private:
         QString surl;
     };
     void appendHistory(QString stime, QString title, QString url);
-
+    QWebInspector* WI;
 
 private slots:
     void gotoURL();
@@ -74,6 +75,7 @@ private slots:
     void zoomin();
     void zoomout();
     void zoom1();
+    void inspector();
 };
 
 #endif // MAINWINDOW_H
