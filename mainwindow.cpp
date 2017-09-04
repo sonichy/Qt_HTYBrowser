@@ -15,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     WI = new QWebInspector(this);
     ui->verticalLayout->addWidget(WI);
+    WI->setVisible(false);
     ui->pushButtonStop->setVisible(false);
     setStyleSheet("QTabBar:tab{width:150px;text-align:left;} QPushButton::menu-indicator{width:0px;}");
     ui->pushButtonBack->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft));
@@ -39,6 +40,8 @@ MainWindow::MainWindow(QWidget *parent) :
     action_source->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_U));
     action_history = new QAction("历史记录",menu);
     action_history->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_H));
+    action_devtool = new QAction("开发者工具",menu);
+    action_devtool->setShortcut(QKeySequence(Qt::Key_F12));
     action_loadJS = new QAction("重载JS",menu);
     action_about = new QAction("关于",menu);
     action_about->setShortcut(QKeySequence(Qt::Key_F1));
@@ -48,7 +51,8 @@ MainWindow::MainWindow(QWidget *parent) :
     menu->addAction(action_find);
     menu->addAction(action_source);
     menu->addAction(action_history);
-    menu->addAction(action_loadJS);
+    menu->addAction(action_devtool);
+    menu->addAction(action_loadJS);    
     menu->addAction(action_about);
     ui->pushButtonMenu->setMenu(menu);
     connect(action_newtab,SIGNAL(triggered(bool)),this,SLOT(newTab()));
@@ -56,6 +60,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(action_find,SIGNAL(triggered(bool)),this,SLOT(find()));
     connect(action_source,SIGNAL(triggered(bool)),this,SLOT(viewSource()));
     connect(action_history,SIGNAL(triggered(bool)),this,SLOT(history()));
+    connect(action_devtool,SIGNAL(triggered(bool)),this,SLOT(inspector()));
     connect(action_loadJS,SIGNAL(triggered(bool)),this,SLOT(loadJS()));
     connect(action_about,SIGNAL(triggered(bool)),this,SLOT(about()));
     connect(new QShortcut(QKeySequence(Qt::Key_F5),this), SIGNAL(activated()),this, SLOT(refresh()));
@@ -69,8 +74,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_D),this), SIGNAL(activated()),this, SLOT(on_pushButton_addBookmark_clicked()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Plus),this), SIGNAL(activated()),this, SLOT(zoomin()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Minus),this), SIGNAL(activated()),this, SLOT(zoomout()));
-    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));
-    connect(new QShortcut(QKeySequence(Qt::Key_F12),this), SIGNAL(activated()),this, SLOT(inspector()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));    
     connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
     newTab();
@@ -123,6 +127,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::newTab()
 {
+    WI->setVisible(false);
     QWebView *webView = new QWebView;
     webView->settings()->setAttribute(QWebSettings::PluginsEnabled,true);
     webView->settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows,true);
@@ -536,8 +541,8 @@ void MainWindow::inspector()
 {
     if(WI->isVisible()){
         WI->setVisible(false);
-    }else{
-        WI->setVisible(true);
+    }else{        
         WI->setPage(((QWebView*)(ui->tabWidget->currentWidget()))->page());
+        WI->setVisible(true);
     }
 }

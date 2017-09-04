@@ -21,7 +21,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QAction *action_newtab,*action_open,*action_bookmark,*action_source,*action_history,*action_about,*action_find,*action_loadJS;
+    QAction *action_newtab,*action_open,*action_bookmark,*action_source,*action_history,*action_about,*action_find,*action_loadJS,*action_devtool;
     QString filename,js;
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
