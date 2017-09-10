@@ -7,12 +7,14 @@
 #include <QWebView>
 #include <QWebFrame>
 #include <QTextEdit>
+#include <QNetworkProxy>
+#include <QDesktopWidget>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+    ui->setupUi(this);    
     WI = new QWebInspector(this);
     ui->verticalLayout->addWidget(WI);
     WI->setVisible(false);
@@ -21,12 +23,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButtonBack->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft));
     ui->pushButtonForward->setIcon(style()->standardIcon(QStyle::SP_ArrowRight));
     ui->pushButtonStop->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
-    setWindowState(Qt::WindowMaximized);
+    setWindowState(Qt::WindowMaximized);    
     connect(ui->pushButtonBack, SIGNAL(pressed()), this, SLOT(goBack()));
     connect(ui->pushButtonForward, SIGNAL(pressed()), this, SLOT(goForward()));
     connect(ui->pushButtonGoto, SIGNAL(pressed()), this, SLOT(gotoURL()));
     connect(ui->lineEditURL,SIGNAL(returnPressed()),this,SLOT(gotoURL()));
+    connect(ui->lineEditURL,SIGNAL(textEdited(QString)),this,SLOT(search(QString)));
     connect(ui->pushButtonStop, SIGNAL(pressed()), this, SLOT(stop()));
+
     QMenu *menu=new QMenu;
     action_newtab = new QAction("新标签页",menu);
     action_newtab->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_T));
@@ -63,8 +67,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(action_devtool,SIGNAL(triggered(bool)),this,SLOT(inspector()));
     connect(action_loadJS,SIGNAL(triggered(bool)),this,SLOT(loadJS()));
     connect(action_about,SIGNAL(triggered(bool)),this,SLOT(about()));
-    connect(new QShortcut(QKeySequence(Qt::Key_F5),this), SIGNAL(activated()),this, SLOT(refresh()));
-    connect(new QShortcut(QKeySequence(Qt::Key_Escape),this), SIGNAL(activated()),this, SLOT(stop()));
+    connect(new QShortcut(QKeySequence(Qt::Key_Escape),this), SIGNAL(activated()),this, SLOT(cancel()));
+    connect(new QShortcut(QKeySequence(Qt::Key_F5),this), SIGNAL(activated()),this, SLOT(refresh()));    
     connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Left),this), SIGNAL(activated()),this, SLOT(goBack()));
     connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Right),this), SIGNAL(activated()),this, SLOT(goForward()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Tab),this), SIGNAL(activated()),this, SLOT(switchTab()));    
@@ -77,6 +81,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));    
     connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
+    connect(ui->tabWidget,SIGNAL(tabBarDoubleClicked(int)),this,SLOT(tabBarDoubleClick(int)));
     newTab();
     ui->lineEditURL->setText("http://www.baidu.com/");
     QWebSettings::setIconDatabasePath(".");
@@ -109,6 +114,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(pushButton_findclose,SIGNAL(pressed()),this,SLOT(hidefind()));
 
     loadBookmarks();
+    loadHistory();
     loadJS();
 
     QString FileNameHistory = QDir::currentPath() + "/history";
@@ -118,6 +124,21 @@ MainWindow::MainWindow(QWidget *parent) :
         file->close();
     }
 
+//    QNetworkProxy proxy;
+//    proxy = QNetworkProxy::HttpProxy;
+//    proxy.setHostName("127.0.0.1");
+//    proxy.setPort(8087);
+//    NAM = new QNetworkAccessManager;
+//    NAM->setProxy(proxy);
+
+    tableSearch = new QTableWidget(this);
+    tableSearch->setShowGrid(false);
+    tableSearch->setColumnCount(1);
+    tableSearch->setSelectionMode(QAbstractItemView::SingleSelection);
+    tableSearch->horizontalHeader()->setVisible(false);
+    tableSearch->verticalHeader()->setVisible(false);    
+    tableSearch->setVisible(false);
+    connect(tableSearch,SIGNAL(cellClicked(int,int)),this,SLOT(cellClick(int,int)));
 }
 
 MainWindow::~MainWindow()
@@ -133,6 +154,7 @@ void MainWindow::newTab()
     webView->settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows,true);
     webView->settings()->setAttribute(QWebSettings::DeveloperExtrasEnabled,true);
     webView->page()->setLinkDelegationPolicy(QWebPage::DelegateExternalLinks);
+    //webView->page()->setNetworkAccessManager(NAM);
     connect(webView, SIGNAL(linkClicked(const QUrl&)), this, SLOT(onLinkClicked(const QUrl&)));
     connect(webView->page(),SIGNAL(linkHovered(QString,QString,QString)),this,SLOT(linkHover(QString,QString,QString)));
     connect(webView,SIGNAL(loadProgress(int)),this,SLOT(loadProgress(int)));
@@ -157,6 +179,7 @@ void MainWindow::stop()
 
 void MainWindow::onLinkClicked(const QUrl &url)
 {
+    //newTab();
     ui->lineEditURL->setText(url.toString());
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(url);
 }
@@ -203,7 +226,13 @@ void MainWindow::loadFinish(bool b)
         ui->progressBar->setValue(0);
         ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
     }else{
-        ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text()));
+        if(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().contains(".")){
+            if(!((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().startsWith("http://")){
+                ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://" + ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString()) );
+            }
+        }else{
+            ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text()) );
+        }
     }    
 }
 
@@ -283,13 +312,22 @@ void MainWindow::titleChange(QString title)
 
 void MainWindow::linkHover(const QString &link, const QString &title, const QString &textContent)
 {
+    Q_UNUSED(title);
+    Q_UNUSED(textContent);
     statusBar()->showMessage(link);
 }
 
 void MainWindow::closeTab(int i)
 {
     ui->tabWidget->removeTab(i);
-    if(ui->tabWidget->count()<1)newTab();
+    if(ui->tabWidget->count()<1){
+        newTab();
+    }else{
+        if(WI->isVisible()){
+            WI->setPage(((QWebView*)(ui->tabWidget->currentWidget()))->page());
+            WI->show();
+        }
+    }
 }
 
 void MainWindow::currentChange(int i)
@@ -312,7 +350,11 @@ void MainWindow::switchTab()
         return;
     }
     if(index < ui->tabWidget->count()-1){
-        ui->tabWidget->setCurrentIndex(index+1);
+        ui->tabWidget->setCurrentIndex(index+1);        
+    }
+    if(WI->isVisible()){
+        WI->setPage(((QWebView*)(ui->tabWidget->currentWidget()))->page());
+        WI->show();
     }
 }
 
@@ -343,7 +385,6 @@ void MainWindow::viewSource()
 void MainWindow::loadProgress(int i)
 {
     ui->progressBar->setValue(i);
-    //QString js="var imgs=document.getElementsByTagName('img'); for(i=0;i<imgs.length;i++){ if(imgs[i].src.indexOf('http://ads.')!=-1 || imgs[i].src.indexOf('://ww2.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://ww3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://vip.xinzheng8.pw')!=-1 || imgs[i].src.indexOf('://wx3.sinaimg.cn')!=-1 || imgs[i].src.indexOf('://wx4.sinaimg.cn')!=-1 || imgs[i].src.indexOf('http://www.pv84.com')!=-1 || imgs[i].src.indexOf('://img.9118ads.com')!=-1 || imgs[i].src.indexOf('://wwwcdn.4006578517.com')!=-1 ) imgs[i].style.display='none';}";
     ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->evaluateJavaScript(js);
 }
 
@@ -461,9 +502,12 @@ void MainWindow::gotoBookmarkURL(bool)
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
 }
 
-void MainWindow::history()
+void MainWindow::loadHistory()
 {
-    QList<History> historys;
+    //QList<History> historys;
+    SL_history_time.clear();
+    SL_history_title.clear();
+    SL_history_url.clear();
     QString FileNameHistory = QDir::currentPath() + "/history";
     QFile *file=new QFile(FileNameHistory);
     if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
@@ -474,17 +518,26 @@ void MainWindow::history()
         for(int i=0;i<line.size();i++){
             if(line.at(i).contains("#")){
                 QStringList strlist=line.at(i).split("#");
-                History history;
-                history.stime = strlist.at(0);
-                history.title = strlist.at(1);
-                history.surl = strlist.at(2);
-                historys.append(history);
+//                History history;
+//                history.time = strlist.at(0);
+//                history.title = strlist.at(1);
+//                history.url = strlist.at(2);
+//                historys.append(history);
+                SL_history_time.append(strlist.at(0));
+                SL_history_title.append(strlist.at(1));
+                SL_history_url.append(strlist.at(2));
             }
         }
     }
+}
+
+void MainWindow::history()
+{
+    loadHistory();
     QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;} table{margin:10 auto;} td{padding:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} td:first-child{color:gray;} td:nth-child(2){max-width:500px;} td:nth-child(3){color:gray;max-width:500px;}</style></head><body><table>";
-    for(int i=historys.size()-1; i>=0; i--){
-        s += "<tr><td>" + historys.at(i).stime + "</td><td><a href=" + historys.at(i).surl + ">" + historys.at(i).title + "</td><td>" + historys.at(i).surl + "</td></tr>";
+    for(int i=SL_history_time.size()-1; i>=0; i--){
+        //s += "<tr><td>" + historys.at(i).time + "</td><td><a href=" + historys.at(i).url + ">" + historys.at(i).title + "</td><td>" + historys.at(i).url + "</td></tr>";
+        s += "<tr><td>" + SL_history_time.at(i) + "</td><td><a href=" + SL_history_url.at(i) + ">" + SL_history_title.at(i) + "</td><td>" + SL_history_url.at(i) + "</td></tr>";
     }
     s+="</table></body></html>";
     newTab();
@@ -545,4 +598,49 @@ void MainWindow::inspector()
         WI->setPage(((QWebView*)(ui->tabWidget->currentWidget()))->page());
         WI->setVisible(true);
     }
+}
+
+void MainWindow::tabBarDoubleClick(int index)
+{
+    qDebug() << "tab" << index;
+    if(index==-1){
+        newTab();
+    }
+}
+
+void MainWindow::search(QString key)
+{
+    if(key!=""){
+        tableSearch->setRowCount(0);
+        tableSearch->setVisible(true);
+        QStringList result = SL_history_url.filter(key);
+        //qDebug() << "search" << result.size();
+        for(int i=0; i<result.size(); i++){
+            tableSearch->insertRow(i);
+            tableSearch->setItem(i,0,new QTableWidgetItem(result.at(i)));
+        }
+    }
+}
+
+void MainWindow::cancel()
+{   
+    tableSearch->hide();
+    stop();
+}
+
+void MainWindow::cellClick(int r,int c)
+{
+    //qDebug() << tableSearch->item(r,c)->text();
+    ui->lineEditURL->setText(tableSearch->item(r,c)->text());
+    tableSearch->setVisible(false);
+    gotoURL();
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    Q_UNUSED(event);
+    tableSearch->resize(ui->lineEditURL->width(),220);
+    tableSearch->setColumnWidth(0,ui->lineEditURL->width());
+    tableSearch->move(ui->lineEditURL->x(), ui->lineEditURL->y()+ui->lineEditURL->height());
+    //qDebug() << ui->lineEditURL->size();
 }

@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QWebInspector>
+#include <QTableWidget>
 
 namespace Ui {
 class MainWindow;
@@ -19,6 +20,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+protected:
+    void resizeEvent(QResizeEvent*);
+
 private:
     Ui::MainWindow *ui;
     QAction *action_newtab,*action_open,*action_bookmark,*action_source,*action_history,*action_about,*action_find,*action_loadJS,*action_devtool;
@@ -26,17 +30,20 @@ private:
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
     QPushButton *pushButton_findlast,*pushButton_findnext,*pushButton_findclose;
-    QStringList SL_bookmark_title,SL_bookmark_url;
+    QStringList SL_bookmark_title,SL_bookmark_url,SL_history_time,SL_history_title,SL_history_url,SL_url;
     void saveBookmarks();
     void fillBookmarkMenu();
     bool bookmarked;
     struct History {
-        QString stime;
+        QString time;
         QString title;
-        QString surl;
+        QString url;
     };
     void appendHistory(QString stime, QString title, QString url);
     QWebInspector* WI;
+    QNetworkAccessManager *NAM;
+    QTableWidget *tableSearch;
+    void loadHistory();
 
 private slots:
     void gotoURL();
@@ -76,6 +83,10 @@ private slots:
     void zoomout();
     void zoom1();
     void inspector();
+    void tabBarDoubleClick(int);
+    void search(QString);
+    void cancel();
+    void cellClick(int,int);
 };
 
 #endif // MAINWINDOW_H
