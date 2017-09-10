@@ -169,6 +169,7 @@ void MainWindow::newTab()
 
 void MainWindow::gotoURL()
 {
+    tableSearch->setVisible(false);
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
 }
 
@@ -632,7 +633,6 @@ void MainWindow::cellClick(int r,int c)
 {
     //qDebug() << tableSearch->item(r,c)->text();
     ui->lineEditURL->setText(tableSearch->item(r,c)->text());
-    tableSearch->setVisible(false);
     gotoURL();
 }
 
