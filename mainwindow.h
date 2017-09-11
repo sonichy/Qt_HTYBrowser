@@ -30,7 +30,7 @@ private:
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
     QPushButton *pushButton_findlast,*pushButton_findnext,*pushButton_findclose;
-    QStringList SL_bookmark_title,SL_bookmark_url,SL_history_time,SL_history_title,SL_history_url,SL_url;
+    QStringList SL_bookmark_title,SL_bookmark_url,SL_history_time,SL_history_title,SL_history_url;
     void saveBookmarks();
     void fillBookmarkMenu();
     bool bookmarked;

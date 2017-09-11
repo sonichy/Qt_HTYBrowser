@@ -614,11 +614,19 @@ void MainWindow::search(QString key)
     if(key!=""){
         tableSearch->setRowCount(0);
         tableSearch->setVisible(true);
-        QStringList result = SL_history_url.filter(key);
-        //qDebug() << "search" << result.size();
-        for(int i=0; i<result.size(); i++){
-            tableSearch->insertRow(i);
-            tableSearch->setItem(i,0,new QTableWidgetItem(result.at(i)));
+        //QStringList result = SL_history_url.filter(key);
+        QStringList SLURL;
+        SLURL.append(SL_history_url);
+        SLURL.append(SL_bookmark_url);
+        QStringList result = SLURL.filter(key);
+        result.removeDuplicates();
+        if(result.size()==0){
+            tableSearch->setVisible(false);
+        }else{
+            for(int i=0; i<result.size(); i++){
+                tableSearch->insertRow(i);
+                tableSearch->setItem(i,0,new QTableWidgetItem(result.at(i)));
+            }
         }
     }
 }
