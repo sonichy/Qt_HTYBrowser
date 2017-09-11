@@ -87,6 +87,7 @@ private slots:
     void search(QString);
     void cancel();
     void cellClick(int,int);
+    bool eventFilter(QObject *,QEvent *);
 };
 
 #endif // MAINWINDOW_H

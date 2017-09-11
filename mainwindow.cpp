@@ -9,12 +9,14 @@
 #include <QTextEdit>
 #include <QNetworkProxy>
 #include <QDesktopWidget>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);    
+    ui->setupUi(this);
+    ui->lineEditURL->installEventFilter(this);
     WI = new QWebInspector(this);
     ui->verticalLayout->addWidget(WI);
     WI->setVisible(false);
@@ -651,4 +653,17 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     tableSearch->setColumnWidth(0,ui->lineEditURL->width());
     tableSearch->move(ui->lineEditURL->x(), ui->lineEditURL->y()+ui->lineEditURL->height());
     //qDebug() << ui->lineEditURL->size();
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if(watched == ui->lineEditURL){
+        if(event->type() == QEvent::FocusIn){
+            qDebug() << "focus in";
+            //ui->lineEditURL->selectAll();
+            //ui->lineEditURL->setFocus(Qt::OtherFocusReason);
+            QTimer::singleShot(0,ui->lineEditURL,SLOT(selectAll()));
+        }
+    }
+    return QWidget::eventFilter(watched,event);
 }
