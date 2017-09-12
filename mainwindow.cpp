@@ -69,6 +69,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(action_devtool,SIGNAL(triggered(bool)),this,SLOT(inspector()));
     connect(action_loadJS,SIGNAL(triggered(bool)),this,SLOT(loadJS()));
     connect(action_about,SIGNAL(triggered(bool)),this,SLOT(about()));
+    connect(new QShortcut(QKeySequence(Qt::Key_Up),this), SIGNAL(activated()),this, SLOT(prevURL()));
+    connect(new QShortcut(QKeySequence(Qt::Key_Down),this), SIGNAL(activated()),this, SLOT(nextURL()));
+    connect(new QShortcut(QKeySequence(Qt::Key_Return),this), SIGNAL(activated()),this, SLOT(gotoURL()));
+    connect(new QShortcut(QKeySequence(Qt::Key_Enter),this), SIGNAL(activated()),this, SLOT(gotoURL()));
     connect(new QShortcut(QKeySequence(Qt::Key_Escape),this), SIGNAL(activated()),this, SLOT(cancel()));
     connect(new QShortcut(QKeySequence(Qt::Key_F5),this), SIGNAL(activated()),this, SLOT(refresh()));    
     connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Left),this), SIGNAL(activated()),this, SLOT(goBack()));
@@ -666,4 +670,24 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
         }
     }
     return QWidget::eventFilter(watched,event);
+}
+
+void MainWindow::prevURL()
+{
+    if(tableSearch->isVisible() && tableSearch->currentRow()>0){
+        tableSearch->setCurrentCell(tableSearch->currentRow()-1,0);
+        ui->lineEditURL->setText(tableSearch->item(tableSearch->currentRow(),0)->text());
+    }else{
+       ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->setScrollBarValue(Qt::Vertical, ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->scrollBarValue(Qt::Vertical) - 100 );
+    }
+}
+
+void MainWindow::nextURL()
+{
+    if(tableSearch->isVisible() && tableSearch->currentRow()<tableSearch->rowCount()-1){
+        tableSearch->setCurrentCell(tableSearch->currentRow()+1,0);
+        ui->lineEditURL->setText(tableSearch->item(tableSearch->currentRow(),0)->text());
+    }else{
+        ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->setScrollBarValue(Qt::Vertical, ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->scrollBarValue(Qt::Vertical) + 100 );
+    }
 }

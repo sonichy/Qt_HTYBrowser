@@ -88,6 +88,8 @@ private slots:
     void cancel();
     void cellClick(int,int);
     bool eventFilter(QObject *,QEvent *);
+    void prevURL();
+    void nextURL();
 };
 
 #endif // MAINWINDOW_H
