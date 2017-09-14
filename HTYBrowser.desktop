@@ -6,5 +6,5 @@ Icon=/media/sonichy/job/HY/Linux/Qt/HTYBrowser/icon.png
 Path=/media/sonichy/job/HY/Linux/Qt/HTYBrowser
 Terminal=false
 Type=Application
-MimeType=
-Categories=
+MimeType=text/html;text/xml;application/xhtml_xml;image/webp;
+Categories=Network;WebBrowser;

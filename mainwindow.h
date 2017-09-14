@@ -90,6 +90,7 @@ private slots:
     bool eventFilter(QObject *,QEvent *);
     void prevURL();
     void nextURL();
+    void fullScreen();
 };
 
 #endif // MAINWINDOW_H

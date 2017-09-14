@@ -84,7 +84,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_D),this), SIGNAL(activated()),this, SLOT(on_pushButton_addBookmark_clicked()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Plus),this), SIGNAL(activated()),this, SLOT(zoomin()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Minus),this), SIGNAL(activated()),this, SLOT(zoomout()));
-    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));    
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));
+    connect(new QShortcut(QKeySequence(Qt::Key_F11),this), SIGNAL(activated()),this, SLOT(fullScreen()));
     connect(ui->tabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentChange(int)));
     connect(ui->tabWidget,SIGNAL(tabBarDoubleClicked(int)),this,SLOT(tabBarDoubleClick(int)));
@@ -145,6 +146,13 @@ MainWindow::MainWindow(QWidget *parent) :
     tableSearch->verticalHeader()->setVisible(false);    
     tableSearch->setVisible(false);
     connect(tableSearch,SIGNAL(cellClicked(int,int)),this,SLOT(cellClick(int,int)));
+
+    QStringList Largs=QApplication::arguments();
+    qDebug() << Largs;
+    if(Largs.length()>1){
+        ui->lineEditURL->setText("file://"+Largs.at(1));
+        gotoURL();
+    }
 }
 
 MainWindow::~MainWindow()
@@ -619,11 +627,10 @@ void MainWindow::search(QString key)
 {
     if(key!=""){
         tableSearch->setRowCount(0);
-        tableSearch->setVisible(true);
-        //QStringList result = SL_history_url.filter(key);
+        tableSearch->setVisible(true);        
         QStringList SLURL;
         SLURL.append(SL_history_url);
-        SLURL.append(SL_bookmark_url);
+        SLURL.append(SL_bookmark_url);        
         QStringList result = SLURL.filter(key);
         result.removeDuplicates();
         if(result.size()==0){
@@ -689,5 +696,22 @@ void MainWindow::nextURL()
         ui->lineEditURL->setText(tableSearch->item(tableSearch->currentRow(),0)->text());
     }else{
         ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->setScrollBarValue(Qt::Vertical, ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->scrollBarValue(Qt::Vertical) + 100 );
+    }
+}
+
+void MainWindow::fullScreen()
+{
+    if(isFullScreen()){
+        showMaximized();
+        ui->statusBar->show();
+        ui->navbar->show();
+        ui->tabWidget->tabBar()->show();
+        ui->progressBar->show();
+    }else{
+        showFullScreen();
+        ui->statusBar->hide();
+        ui->navbar->hide();
+        ui->tabWidget->tabBar()->hide();
+        ui->progressBar->hide();
     }
 }
