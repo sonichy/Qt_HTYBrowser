@@ -93,9 +93,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEditURL->setText("http://www.baidu.com/");
     QWebSettings::setIconDatabasePath(".");
 
-    find_dialog = new QDialog;
+    find_dialog = new QDialog(this);
     find_dialog->setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
     QHBoxLayout *hbox = new QHBoxLayout;
+    hbox->setMargin(2);
     lineEdit_find = new QLineEdit;
     hbox->addWidget(lineEdit_find);
     pushButton_findlast = new QPushButton;
@@ -184,6 +185,11 @@ void MainWindow::newTab()
 void MainWindow::gotoURL()
 {
     tableSearch->setVisible(false);
+    QString surl = ui->lineEditURL->text();
+    if(surl.indexOf("://")==-1){
+        surl = "http://" + surl;
+        ui->lineEditURL->setText(surl);
+    }
     ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl(ui->lineEditURL->text()));
 }
 
@@ -409,10 +415,9 @@ void MainWindow::refresh()
 }
 
 void MainWindow::find()
-{
-    qDebug() << lineEdit_find->height();
+{    
     lineEdit_find->setText(((QWebView*)(ui->tabWidget->currentWidget()))->selectedText());
-    find_dialog->move(x() + width() - find_dialog->width(), y()+90);
+    find_dialog->move(x() + width() - find_dialog->width(), y()+60);
     find_dialog->show();
     find_dialog->raise();
 }
@@ -663,7 +668,9 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     tableSearch->resize(ui->lineEditURL->width(),220);
     tableSearch->setColumnWidth(0,ui->lineEditURL->width());
     tableSearch->move(ui->lineEditURL->x(), ui->lineEditURL->y()+ui->lineEditURL->height());
-    //qDebug() << ui->lineEditURL->size();
+    if(find_dialog->isVisible()){
+        find_dialog->move(x() + width() - find_dialog->width(), y()+60);
+    }
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
@@ -713,5 +720,6 @@ void MainWindow::fullScreen()
         ui->navbar->hide();
         ui->tabWidget->tabBar()->hide();
         ui->progressBar->hide();
+        find_dialog->hide();
     }
 }
