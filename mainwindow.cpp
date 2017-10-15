@@ -245,7 +245,7 @@ void MainWindow::loadFinish(bool b)
     ui->pushButtonStop->setVisible(false);
     if(b){
         ui->progressBar->setValue(0);
-        ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());
+        ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());        
     }else{
         if(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().contains(".")){
             if(!((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().startsWith("http://")){
@@ -393,14 +393,23 @@ void MainWindow::closeCurrentTab()
 
 void MainWindow::viewSource()
 {
-    QString s = ((QWebView*)(ui->tabWidget->currentWidget()))->page()->currentFrame()->toHtml();
-    s=s.replace("<","&lt;");
-    s=s.replace(">","&gt;");
-    s="<title>源码</title><pre>"+s+"</pre>";
-    //qDebug() << s;
-    QUrl url = ((QWebView*)(ui->tabWidget->currentWidget()))->url();
-    newTab();
-    ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
+    if(!((QWebView*)(ui->tabWidget->currentWidget()))->page()->currentFrame()->url().toString().startsWith("source:")){
+        QString s = ((QWebView*)(ui->tabWidget->currentWidget()))->page()->currentFrame()->toHtml();
+        s=s.replace("<","&lt;");
+        s=s.replace(">","&gt;<br>");
+        //s="<title>源码</title><pre>"+s+"</pre>";
+        //qDebug() << s;
+        QString surl = "source:" + ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString();
+        QUrl url(surl);
+        WI->setVisible(false);
+        QWebView *webView = new QWebView;
+        connect(webView,SIGNAL(loadFinished(bool)),this,SLOT(loadFinish(bool)));
+        ui->tabWidget->addTab(webView, surl);
+        ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
+        ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(),surl);
+        ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
+        ui->statusBar->showMessage("");
+    }
 }
 
 void MainWindow::loadProgress(int i)
@@ -568,8 +577,8 @@ void MainWindow::history()
 
 void MainWindow::appendHistory(QString stime, QString title, QString surl)
 {
-    QString FileNameHistory = QDir::currentPath() + "/history";
-    QFile file(FileNameHistory);
+    QString filenameHistory = QDir::currentPath() + "/history";
+    QFile file(filenameHistory);
     if(file.open(QFile::WriteOnly | QIODevice::Append)){
         QTextStream ts(&file);
         QString s = stime + "#" + title + "#" + surl + "\n";
@@ -677,7 +686,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
     if(watched == ui->lineEditURL){
         if(event->type() == QEvent::FocusIn){
-            qDebug() << "focus in";
+            //qDebug() << "ui->lineEditURL focus in";
             //ui->lineEditURL->selectAll();
             //ui->lineEditURL->setFocus(Qt::OtherFocusReason);
             QTimer::singleShot(0,ui->lineEditURL,SLOT(selectAll()));
