@@ -4,6 +4,6 @@
 
 ![alt](preview.png)  
 
-错误排查：  
+### 错误排查：
 Project ERROR: Unknown module(s) in QT: webkit  
 sudo apt-get install libqt5webkit5-dev  
