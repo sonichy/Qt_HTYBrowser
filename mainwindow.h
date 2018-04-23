@@ -25,7 +25,7 @@ protected:
 
 private:
     Ui::MainWindow *ui;
-    QAction *action_newtab,*action_open,*action_bookmark,*action_source,*action_history,*action_about,*action_find,*action_loadJS,*action_devtool;
+    QAction *action_newtab, *action_open, *action_bookmark, *action_source, *action_history, *action_about, *action_find, *action_loadJS, *action_devtool, *action_lineEditURL_info, *action_lineEditURL_bookmark;
     QString filename,js;
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
@@ -33,7 +33,7 @@ private:
     QStringList SL_bookmark_title,SL_bookmark_url,SL_history_time,SL_history_title,SL_history_url;
     void saveBookmarks();
     void fillBookmarkMenu();
-    bool bookmarked;
+    bool isBookbarked;
     struct History {
         QString time;
         QString title;
@@ -77,7 +77,7 @@ private slots:
     void hidefind();
     void findlast();
     void findnext();
-    void on_pushButton_addBookmark_clicked();
+    void addBookmark();
     void loadJS();
     void zoomin();
     void zoomout();
@@ -91,6 +91,7 @@ private slots:
     void prevURL();
     void nextURL();
     void fullScreen();
+    void showInfo();
 };
 
 #endif // MAINWINDOW_H

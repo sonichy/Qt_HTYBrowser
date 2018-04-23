@@ -21,7 +21,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->verticalLayout->addWidget(WI);
     WI->setVisible(false);
     ui->pushButtonStop->setVisible(false);
-    setStyleSheet("QTabBar:tab{width:150px;text-align:left;} QPushButton::menu-indicator{width:0px;}");
+    setStyleSheet("QTabBar:tab { width:150px; text-align:left; }"
+                  "QPushButton::menu-indicator { width:0px; }");
     ui->pushButtonBack->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft));
     ui->pushButtonForward->setIcon(style()->standardIcon(QStyle::SP_ArrowRight));
     ui->pushButtonStop->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
@@ -33,7 +34,17 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->lineEditURL,SIGNAL(textEdited(QString)),this,SLOT(search(QString)));
     connect(ui->pushButtonStop, SIGNAL(pressed()), this, SLOT(stop()));
 
-    QMenu *menu=new QMenu;
+    action_lineEditURL_info = new QAction(this);
+    action_lineEditURL_info->setIcon(QIcon(":/info.svg"));
+    connect(action_lineEditURL_info,SIGNAL(triggered(bool)),this,SLOT(showInfo()));
+    ui->lineEditURL->addAction(action_lineEditURL_info,QLineEdit::LeadingPosition);
+
+    action_lineEditURL_bookmark = new QAction(this);
+    action_lineEditURL_bookmark->setIcon(QIcon(":/bookmark_off.png"));
+    connect(action_lineEditURL_bookmark,SIGNAL(triggered(bool)),this,SLOT(addBookmark()));
+    ui->lineEditURL->addAction(action_lineEditURL_bookmark,QLineEdit::TrailingPosition);
+
+    QMenu *menu = new QMenu;
     action_newtab = new QAction("新标签页",menu);
     action_newtab->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_T));
     action_open = new QAction("打开本地网页",menu);
@@ -81,7 +92,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return),this), SIGNAL(activated()),this, SLOT(fillURL()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Enter),this), SIGNAL(activated()),this, SLOT(fillURL()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W),this), SIGNAL(activated()),this, SLOT(closeCurrentTab()));
-    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_D),this), SIGNAL(activated()),this, SLOT(on_pushButton_addBookmark_clicked()));
+    connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_D),this), SIGNAL(activated()),this, SLOT(addBookmark()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Plus),this), SIGNAL(activated()),this, SLOT(zoomin()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Minus),this), SIGNAL(activated()),this, SLOT(zoomout()));
     connect(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_0),this), SIGNAL(activated()),this, SLOT(zoom1()));
@@ -126,7 +137,7 @@ MainWindow::MainWindow(QWidget *parent) :
     loadJS();
 
     QString FileNameHistory = QDir::currentPath() + "/history";
-    QFile *file=new QFile(FileNameHistory);
+    QFile *file = new QFile(FileNameHistory);
     if(!QFileInfo(FileNameHistory).isFile()){
         file->open(QIODevice::WriteOnly);
         file->close();
@@ -225,16 +236,18 @@ void MainWindow::loadStart()
 {
     ui->pushButtonGoto->setVisible(false);
     ui->pushButtonStop->setVisible(true);
-    QString title = ((QWebView*)(ui->tabWidget->currentWidget()))->title();
+    //QString title = ((QWebView*)(ui->tabWidget->currentWidget()))->title();
     QString surl = ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString();
-    for(int i=0;i<SL_bookmark_title.size();i++){
-        if(SL_bookmark_title.at(i)==title && SL_bookmark_url.at(i)==surl){
-            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_on.png"));
-            bookmarked = true;
+    for (int i=0; i<SL_bookmark_url.size(); i++) {
+        if (SL_bookmark_url.at(i) == surl) {
+            //ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_on.png"));
+            action_lineEditURL_bookmark->setIcon(QIcon(":/bookmark_on.png"));
+            isBookbarked = true;
             break;
-        }else{
-            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_off.png"));
-            bookmarked = false;
+        } else {
+            //ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_off.png"));
+            action_lineEditURL_bookmark->setIcon(QIcon(":/bookmark_off.png"));
+            isBookbarked = false;
         }
     }    
 }
@@ -243,15 +256,15 @@ void MainWindow::loadFinish(bool b)
 {
     ui->pushButtonGoto->setVisible(true);
     ui->pushButtonStop->setVisible(false);
-    if(b){
+    if (b) {
         ui->progressBar->setValue(0);
         ui->lineEditURL->setText(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString());        
-    }else{
-        if(((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().contains(".")){
-            if(!((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().startsWith("http://")){
+    } else {
+        if (((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().contains(".")) {
+            if (!((QWebView*)(ui->tabWidget->currentWidget()))->url().toString().startsWith("http://")) {
                 ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://" + ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString()) );
             }
-        }else{
+        } else {
             ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl( "http://www.baidu.com/s?wd=" + ui->lineEditURL->text()) );
         }
     }    
@@ -259,14 +272,14 @@ void MainWindow::loadFinish(bool b)
 
 void MainWindow::openFile()
 {
-    if(filename==""){
+    if (filename=="") {
         filename = QFileDialog::getOpenFileName(this, "打开网页", ".");
-    }else{
+    } else {
         filename = QFileDialog::getOpenFileName(this, "打开网页", filename);
     }
-    if(!filename.isEmpty()){
+    if (!filename.isEmpty()) {
         ((QWebView*)(ui->tabWidget->currentWidget()))->load(QUrl::fromLocalFile(filename));
-        ui->lineEditURL->setText("file://"+filename);
+        ui->lineEditURL->setText("file://" + filename);
     }
 }
 
@@ -327,8 +340,8 @@ void MainWindow::titleChange(QString title)
     ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(),title);
     //QString title = ((QWebView*)(ui->tabWidget->currentWidget()))->title();
     QString surl = ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString();
-    if(title!="" && surl!="" && surl!="htybrowser://history")
-        appendHistory(QDateTime::currentDateTime().toString("MM-dd hh:mm"),title,surl);
+    if(title!="" && surl!="" && surl != "htybrowser://history")
+        appendHistory(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm"),title,surl);
 }
 
 void MainWindow::linkHover(const QString &link, const QString &title, const QString &textContent)
@@ -450,19 +463,19 @@ void MainWindow::findnext()
 
 void MainWindow::loadBookmarks()
 {
-    QString FileNameBookmark = QDir::currentPath() + "/bookmark";
-    QFile *file=new QFile(FileNameBookmark);
-    if(!QFileInfo(FileNameBookmark).isFile()){
+    QString fileNameBookmark = QDir::currentPath() + "/bookmark";
+    QFile *file = new QFile(fileNameBookmark);
+    if (!QFileInfo(fileNameBookmark).isFile()) {
         file->open(QIODevice::WriteOnly);
         file->close();
     }
-    if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
+    if (file->open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream ts(file);
-        QString s=ts.readAll();
+        QString s = ts.readAll();
         file->close();
-        QStringList line=s.split("\n");
-        for(int i=0;i<line.size();i++){
-            if(line.at(i).contains("#")){
+        QStringList line = s.split("\n");
+        for (int i=0; i<line.size(); i++) {
+            if (line.at(i).contains("#")) {
                 QStringList strlist=line.at(i).split("#");
                 SL_bookmark_title.append(strlist.at(0));
                 SL_bookmark_url.append(strlist.at(1));
@@ -475,7 +488,7 @@ void MainWindow::loadBookmarks()
 void MainWindow::fillBookmarkMenu()
 {
     QMenu *submenu = new QMenu;
-    for(int i=0;i<SL_bookmark_title.size();i++){
+    for (int i=0; i<SL_bookmark_title.size(); i++) {
         QAction *action_bookmark_title = new QAction(submenu);
         action_bookmark_title->setText(SL_bookmark_title.at(i));
         action_bookmark_title->setToolTip(SL_bookmark_url.at(i));
@@ -485,21 +498,23 @@ void MainWindow::fillBookmarkMenu()
     action_bookmark->setMenu(submenu);
 }
 
-void MainWindow::on_pushButton_addBookmark_clicked()
+void MainWindow::addBookmark()
 {
     QString title = ((QWebView*)(ui->tabWidget->currentWidget()))->title();
     QString surl = ((QWebView*)(ui->tabWidget->currentWidget()))->url().toString();
-    if(title!="" && surl!=""){
-        if(bookmarked){
-            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_off.png"));
+    if (title!="" && surl!="") {
+        if (isBookbarked) {
+            //ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_off.png"));
+            action_lineEditURL_bookmark->setIcon(QIcon(":/bookmark_off.png"));
             SL_bookmark_title.removeOne(title);
             SL_bookmark_url.removeOne(surl);
-        }else{
-            ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_on.png"));
+        } else {
+            //ui->pushButton_addBookmark->setIcon(QIcon(":/bookmark_on.png"));
+            action_lineEditURL_bookmark->setIcon(QIcon(":/bookmark_on.png"));
             SL_bookmark_title.append(title);
             SL_bookmark_url.append(surl);
         }
-        bookmarked = !bookmarked;
+        isBookbarked = !isBookbarked;
         fillBookmarkMenu();
         saveBookmarks();
     }
@@ -507,15 +522,14 @@ void MainWindow::on_pushButton_addBookmark_clicked()
 
 void MainWindow::saveBookmarks()
 {
-    QString FileNameBookmark = QDir::currentPath() + "/bookmark";
-    QFile file(FileNameBookmark);
-    if(file.open(QFile::WriteOnly))
-    {
+    QString fileNameBookmark = QDir::currentPath() + "/bookmark";
+    QFile file(fileNameBookmark);
+    if (file.open(QFile::WriteOnly)) {
         QTextStream ts(&file);
         QString s;
-        for(int i=0;i<SL_bookmark_title.size();i++){
+        for(int i=0; i<SL_bookmark_title.size(); i++) {
             s = s+ SL_bookmark_title.at(i) + "#" + SL_bookmark_url.at(i);
-            if(i < SL_bookmark_title.size()-1)
+            if (i < SL_bookmark_title.size()-1)
                 s = s + "\n";
         }
         ts << s;
@@ -537,21 +551,16 @@ void MainWindow::loadHistory()
     SL_history_time.clear();
     SL_history_title.clear();
     SL_history_url.clear();
-    QString FileNameHistory = QDir::currentPath() + "/history";
-    QFile *file=new QFile(FileNameHistory);
-    if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
+    QString fileNameHistory = QDir::currentPath() + "/history";
+    QFile *file = new QFile(fileNameHistory);
+    if (file->open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream ts(file);
-        QString s=ts.readAll();
+        QString s = ts.readAll();
         file->close();
-        QStringList line=s.split("\n");
-        for(int i=0;i<line.size();i++){
-            if(line.at(i).contains("#")){
-                QStringList strlist=line.at(i).split("#");
-//                History history;
-//                history.time = strlist.at(0);
-//                history.title = strlist.at(1);
-//                history.url = strlist.at(2);
-//                historys.append(history);
+        QStringList line = s.split("\n");
+        for(int i=0; i<line.size(); i++){
+            if (line.at(i).contains("#")) {
+                QStringList strlist = line.at(i).split("#");
                 SL_history_time.append(strlist.at(0));
                 SL_history_title.append(strlist.at(1));
                 SL_history_url.append(strlist.at(2));
@@ -564,11 +573,10 @@ void MainWindow::history()
 {
     loadHistory();
     QString s = "<html><head><title>历史记录</title><style>a{text-decoration:none;color:black;} table{margin:10 auto;} td{padding:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} td:first-child{color:gray;} td:nth-child(2){max-width:500px;} td:nth-child(3){color:gray;max-width:500px;}</style></head><body><table>";
-    for(int i=SL_history_time.size()-1; i>=0; i--){
-        //s += "<tr><td>" + historys.at(i).time + "</td><td><a href=" + historys.at(i).url + ">" + historys.at(i).title + "</td><td>" + historys.at(i).url + "</td></tr>";
+    for (int i=SL_history_time.size()-1; i>=0; i--) {
         s += "<tr><td>" + SL_history_time.at(i) + "</td><td><a href=" + SL_history_url.at(i) + ">" + SL_history_title.at(i) + "</td><td>" + SL_history_url.at(i) + "</td></tr>";
     }
-    s+="</table></body></html>";
+    s += "</table></body></html>";
     newTab();
     QUrl url("HTYBrowser://history");
     ((QWebView*)(ui->tabWidget->currentWidget()))->setHtml(s,url);
@@ -577,9 +585,9 @@ void MainWindow::history()
 
 void MainWindow::appendHistory(QString stime, QString title, QString surl)
 {
-    QString filenameHistory = QDir::currentPath() + "/history";
-    QFile file(filenameHistory);
-    if(file.open(QFile::WriteOnly | QIODevice::Append)){
+    QString fileNameHistory = QDir::currentPath() + "/history";
+    QFile file(fileNameHistory);
+    if (file.open(QFile::WriteOnly | QIODevice::Append)) {
         QTextStream ts(&file);
         QString s = stime + "#" + title + "#" + surl + "\n";
         //s = s + s0;
@@ -590,15 +598,15 @@ void MainWindow::appendHistory(QString stime, QString title, QString surl)
 
 void MainWindow::loadJS()
 {
-    QString FileNameJS = QDir::currentPath() + "/js.js";
-    QFile *file=new QFile(FileNameJS);
-    if(!QFileInfo(FileNameJS).isFile()){
+    QString fileNameJS = QDir::currentPath() + "/js.js";
+    QFile *file = new QFile(fileNameJS);
+    if (!QFileInfo(fileNameJS).isFile()) {
         file->open(QIODevice::WriteOnly);
         file->close();
-    }else{
-        if(file->open(QIODevice::ReadOnly | QIODevice::Text)){
+    } else {
+        if (file->open(QIODevice::ReadOnly | QIODevice::Text)) {
             QTextStream ts(file);
-            js=ts.readAll();
+            js = ts.readAll();
             file->close();
         }
     }
@@ -621,9 +629,9 @@ void MainWindow::zoom1()
 
 void MainWindow::inspector()
 {
-    if(WI->isVisible()){
+    if (WI->isVisible()) {
         WI->setVisible(false);
-    }else{        
+    } else {
         WI->setPage(((QWebView*)(ui->tabWidget->currentWidget()))->page());
         WI->setVisible(true);
     }
@@ -632,14 +640,14 @@ void MainWindow::inspector()
 void MainWindow::tabBarDoubleClick(int index)
 {
     qDebug() << "tab" << index;
-    if(index==-1){
+    if (index == -1) {
         newTab();
     }
 }
 
 void MainWindow::search(QString key)
 {
-    if(key!=""){
+    if (key != "") {
         tableSearch->setRowCount(0);
         tableSearch->setVisible(true);        
         QStringList SLURL;
@@ -647,9 +655,9 @@ void MainWindow::search(QString key)
         SLURL.append(SL_bookmark_url);        
         QStringList result = SLURL.filter(key);
         result.removeDuplicates();
-        if(result.size()==0){
+        if (result.size() == 0) {
             tableSearch->setVisible(false);
-        }else{
+        } else {
             for(int i=0; i<result.size(); i++){
                 tableSearch->insertRow(i);
                 tableSearch->setItem(i,0,new QTableWidgetItem(result.at(i)));
@@ -676,16 +684,16 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     Q_UNUSED(event);
     tableSearch->resize(ui->lineEditURL->width(),220);
     tableSearch->setColumnWidth(0,ui->lineEditURL->width());
-    tableSearch->move(ui->lineEditURL->x(), ui->lineEditURL->y()+ui->lineEditURL->height());
-    if(find_dialog->isVisible()){
+    tableSearch->move(ui->lineEditURL->x(), ui->lineEditURL->y() + ui->lineEditURL->height());
+    if (find_dialog->isVisible()) {
         find_dialog->move(x() + width() - find_dialog->width(), y()+60);
     }
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
-    if(watched == ui->lineEditURL){
-        if(event->type() == QEvent::FocusIn){
+    if (watched == ui->lineEditURL) {
+        if (event->type() == QEvent::FocusIn) {
             //qDebug() << "ui->lineEditURL focus in";
             //ui->lineEditURL->selectAll();
             //ui->lineEditURL->setFocus(Qt::OtherFocusReason);
@@ -697,33 +705,33 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 
 void MainWindow::prevURL()
 {
-    if(tableSearch->isVisible() && tableSearch->currentRow()>0){
+    if (tableSearch->isVisible() && tableSearch->currentRow()>0) {
         tableSearch->setCurrentCell(tableSearch->currentRow()-1,0);
         ui->lineEditURL->setText(tableSearch->item(tableSearch->currentRow(),0)->text());
-    }else{
+    } else {
        ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->setScrollBarValue(Qt::Vertical, ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->scrollBarValue(Qt::Vertical) - 100 );
     }
 }
 
 void MainWindow::nextURL()
 {
-    if(tableSearch->isVisible() && tableSearch->currentRow()<tableSearch->rowCount()-1){
+    if (tableSearch->isVisible() && tableSearch->currentRow()<tableSearch->rowCount()-1) {
         tableSearch->setCurrentCell(tableSearch->currentRow()+1,0);
         ui->lineEditURL->setText(tableSearch->item(tableSearch->currentRow(),0)->text());
-    }else{
+    } else {
         ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->setScrollBarValue(Qt::Vertical, ((QWebView*)(ui->tabWidget->currentWidget()))->page()->mainFrame()->scrollBarValue(Qt::Vertical) + 100 );
     }
 }
 
 void MainWindow::fullScreen()
 {
-    if(isFullScreen()){
+    if (isFullScreen()) {
         showMaximized();
         ui->statusBar->show();
         ui->navbar->show();
         ui->tabWidget->tabBar()->show();
         ui->progressBar->show();
-    }else{
+    } else {
         showFullScreen();
         ui->statusBar->hide();
         ui->navbar->hide();
@@ -731,4 +739,9 @@ void MainWindow::fullScreen()
         ui->progressBar->hide();
         find_dialog->hide();
     }
+}
+
+void MainWindow::showInfo()
+{
+
 }
