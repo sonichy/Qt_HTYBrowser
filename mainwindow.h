@@ -7,6 +7,7 @@
 #include <QLineEdit>
 #include <QWebInspector>
 #include <QTableWidget>
+#include <QPrinter>
 
 namespace Ui {
 class MainWindow;
@@ -25,12 +26,12 @@ protected:
 
 private:
     Ui::MainWindow *ui;
-    QAction *action_newtab, *action_open, *action_bookmark, *action_source, *action_history, *action_about, *action_find, *action_loadJS, *action_devtool, *action_lineEditURL_info, *action_lineEditURL_bookmark;
+    QAction *action_newtab, *action_open, *action_bookmark, *action_source, *action_history, *action_about, *action_find, *action_loadJS, *action_devtool, *action_print, *action_lineEditURL_info, *action_lineEditURL_bookmark;
     QString filename,js;
     QDialog *find_dialog;
     QLineEdit *lineEdit_find;
-    QPushButton *pushButton_findlast,*pushButton_findnext,*pushButton_findclose;
-    QStringList SL_bookmark_title,SL_bookmark_url,SL_history_time,SL_history_title,SL_history_url;
+    QPushButton *pushButton_findlast, *pushButton_findnext, *pushButton_findclose;
+    QStringList SL_bookmark_title, SL_bookmark_url, SL_history_time, SL_history_title, SL_history_url;
     void saveBookmarks();
     void fillBookmarkMenu();
     bool isBookbarked;
@@ -44,6 +45,7 @@ private:
     QNetworkAccessManager *NAM;
     QTableWidget *tableSearch;
     void loadHistory();
+    QDialog *dialogInfo;
 
 private slots:
     void gotoURL();
@@ -92,6 +94,9 @@ private slots:
     void nextURL();
     void fullScreen();
     void showInfo();
+    void print();
+    void printDocument(QPrinter *printer);
+    void closeInfo();
 };
 
 #endif // MAINWINDOW_H

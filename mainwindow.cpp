@@ -10,12 +10,15 @@
 #include <QNetworkProxy>
 #include <QDesktopWidget>
 #include <QTimer>
+#include <QPrintPreviewDialog>
+#include <QLabel>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setAttribute(Qt::WA_QuitOnClose,true);
     ui->lineEditURL->installEventFilter(this);
     WI = new QWebInspector(this);
     ui->verticalLayout->addWidget(WI);
@@ -60,6 +63,8 @@ MainWindow::MainWindow(QWidget *parent) :
     action_devtool = new QAction("开发者工具",menu);
     action_devtool->setShortcut(QKeySequence(Qt::Key_F12));
     action_loadJS = new QAction("重载JS",menu);
+    action_print = new QAction("打印",menu);
+    action_print->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
     action_about = new QAction("关于",menu);
     action_about->setShortcut(QKeySequence(Qt::Key_F1));
     menu->addAction(action_newtab);
@@ -69,7 +74,8 @@ MainWindow::MainWindow(QWidget *parent) :
     menu->addAction(action_source);
     menu->addAction(action_history);
     menu->addAction(action_devtool);
-    menu->addAction(action_loadJS);    
+    menu->addAction(action_loadJS);
+    menu->addAction(action_print);
     menu->addAction(action_about);
     ui->pushButtonMenu->setMenu(menu);
     connect(action_newtab,SIGNAL(triggered(bool)),this,SLOT(newTab()));
@@ -79,6 +85,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(action_history,SIGNAL(triggered(bool)),this,SLOT(history()));
     connect(action_devtool,SIGNAL(triggered(bool)),this,SLOT(inspector()));
     connect(action_loadJS,SIGNAL(triggered(bool)),this,SLOT(loadJS()));
+    connect(action_print,SIGNAL(triggered(bool)),this,SLOT(print()));
     connect(action_about,SIGNAL(triggered(bool)),this,SLOT(about()));
     connect(new QShortcut(QKeySequence(Qt::Key_Up),this), SIGNAL(activated()),this, SLOT(prevURL()));
     connect(new QShortcut(QKeySequence(Qt::Key_Down),this), SIGNAL(activated()),this, SLOT(nextURL()));
@@ -743,5 +750,48 @@ void MainWindow::fullScreen()
 
 void MainWindow::showInfo()
 {
-
+    dialogInfo = new QDialog;
+    dialogInfo->setWindowFlags(Qt::FramelessWindowHint);
+    dialogInfo->setAttribute(Qt::WA_QuitOnClose,false);
+    dialogInfo->move(ui->lineEditURL->x(),ui->lineEditURL->y()+60);
+    QVBoxLayout *vbox = new QVBoxLayout;
+    //vbox->setMargin(0);
+    QHBoxLayout *hbox = new QHBoxLayout;
+    hbox->addStretch();
+    QPushButton *pushButton_closeInfo = new QPushButton;
+    pushButton_closeInfo->setFixedSize(24,24);
+    pushButton_closeInfo->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
+    pushButton_closeInfo->setFlat(true);
+    pushButton_closeInfo->setFocusPolicy(Qt::NoFocus);
+    connect(pushButton_closeInfo,SIGNAL(released()),this,SLOT(closeInfo()));
+    hbox->addWidget(pushButton_closeInfo);
+    vbox->addLayout(hbox);
+    hbox = new QHBoxLayout;
+    QLabel *label = new QLabel;
+    label->setText("连接是安全的");
+    label->setStyleSheet("color:green;");
+    hbox->addWidget(label);
+    vbox->addWidget(label);
+    dialogInfo->setLayout(vbox);
+    dialogInfo->show();
 }
+
+void MainWindow::closeInfo()
+{
+    dialogInfo->close();
+}
+
+void MainWindow::print()
+{
+    QPrinter printer(QPrinter::HighResolution);
+    QPrintPreviewDialog preview(&printer, this);
+    connect(&preview, SIGNAL(paintRequested(QPrinter*)), this, SLOT(printDocument(QPrinter*)));
+    preview.exec();
+}
+
+void MainWindow::printDocument(QPrinter *printer)
+{
+    QWebView *webView = ((QWebView*)(ui->tabWidget->currentWidget()));
+    webView->print(printer);
+}
+
